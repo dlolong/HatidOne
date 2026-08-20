@@ -101,6 +101,9 @@ async function uploadDocument(formData: FormData, target: UploadTarget) {
   const { error: recordError } = await target.record(supabase, path, expiration);
   if (recordError) {
     await supabase.storage.from(target.bucket).remove([path]);
+    if (recordError.message.includes('schema cache') || recordError.message.includes('Could not find the function')) {
+      finish('error', 'Document recording is not configured. Apply the latest Supabase migration.');
+    }
     finish('error', 'The document record could not be saved.');
   }
   revalidatePath(ONBOARDING_PATH);
