@@ -114,6 +114,36 @@ fieldset:disabled { opacity: .65; }
 .submit-card h2 { margin: 0 0 6px; }
 .submit-card p { color: var(--muted); line-height: 1.55; margin: 0; }
 
+.compact-form { display: grid; gap: 12px; }
+.offer-list { display: grid; gap: 14px; }
+.offer-card { background: white; border: 1px solid var(--line); border-radius: 18px; padding: 18px; }
+.offer-card-heading { align-items: center; display: flex; justify-content: space-between; }
+.offer-earnings { text-align: right; }
+.offer-earnings small, .offer-earnings strong { display: block; }
+.offer-earnings small { color: var(--muted); font-size: .68rem; margin-bottom: 3px; text-transform: uppercase; }
+.offer-card > p { line-height: 1.45; }
+.offer-card > p small { color: var(--muted); display: block; font-size: .7rem; font-weight: 800; text-transform: uppercase; }
+.offer-card dl { display: grid; gap: 8px; margin: 18px 0; }
+.offer-card dl div { display: flex; justify-content: space-between; }
+.offer-card dt { color: var(--muted); }
+.offer-card dd { font-weight: 700; margin: 0; text-transform: capitalize; }
+.dispatch-page { display: grid; gap: 24px; }
+.dispatch-page .list-heading { max-width: none; }
+.dispatch-grid { display: grid; gap: 24px; }
+.dispatch-queue, .eligible-list { display: grid; gap: 12px; }
+.dispatch-ride, .eligible-card { background: white; border: 1px solid var(--line); border-radius: 16px; padding: 16px; }
+.dispatch-ride-selected { border-color: var(--brand); box-shadow: 0 0 0 2px rgba(18, 99, 75, .1); }
+.dispatch-ride > div:first-child, .eligible-card > div { align-items: center; display: flex; justify-content: space-between; }
+.dispatch-ride h3 { font-size: 1rem; margin: 18px 0 4px; }
+.dispatch-ride p, .dispatch-ride small, .eligible-card span, .eligible-card small { color: var(--muted); }
+.dispatch-ride p { margin: 0 0 12px; }
+.eligible-card { display: grid; gap: 14px; }
+.radius-form { align-items: end; display: grid; gap: 10px; margin-bottom: 14px; }
+.assignment-banner { align-items: flex-start; background: var(--brand-dark); border-radius: 18px; color: white; display: flex; flex-direction: column; gap: 14px; justify-content: space-between; padding: 20px; }
+.assignment-banner .eyebrow { color: var(--accent); }
+.assignment-banner h2 { margin: 0; }
+.assignment-banner p:last-child { color: #bad0c7; margin-bottom: 0; }
+
 @media (min-width: 640px) {
   .landing-page { padding: 26px 32px; }
   .button-row { align-items: center; flex-direction: row; }
@@ -129,4 +159,8 @@ fieldset:disabled { opacity: .65; }
   .onboarding-card-wide { grid-column: 1 / -1; }
   .document-columns { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .submit-card { align-items: center; flex-direction: row; justify-content: space-between; }
+  .offer-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .dispatch-grid { grid-template-columns: minmax(0, 1.15fr) minmax(0, .85fr); }
+  .radius-form { grid-template-columns: 1fr auto; }
+  .assignment-banner { align-items: center; flex-direction: row; }
 }
