@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 import { requireRole } from '@/lib/auth/session';
 import { createClient } from '@/lib/supabase/server';
 import {
+  hasAllowedDocumentSignature,
   isAllowedDocument,
   isDriverDocumentType,
   isVehicleDocumentType,
@@ -87,6 +88,9 @@ async function uploadDocument(formData: FormData, target: UploadTarget) {
   const expiration = parseExpirationDate(formData.get('expiresOn'));
   if (!(file instanceof File) || !isAllowedDocument(file)) {
     finish('error', 'Choose a PDF, JPG, or PNG document no larger than 5 MB.');
+  }
+  if (!(await hasAllowedDocumentSignature(file))) {
+    finish('error', 'The file contents do not match the selected PDF, JPG, or PNG format.');
   }
   if (expiration === undefined) finish('error', 'Enter a valid expiration date.');
 

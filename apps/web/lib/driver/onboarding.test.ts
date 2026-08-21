@@ -4,6 +4,7 @@ import {
   isDriverDocumentType,
   isExpirationCurrent,
   isVehicleDocumentType,
+  matchesDocumentSignature,
   onboardingProgress,
   parseExpirationDate,
 } from './onboarding';
@@ -20,6 +21,14 @@ describe('driver onboarding authorization helpers', () => {
     expect(isAllowedDocument({ size: 1024, type: 'application/pdf' })).toBe(true);
     expect(isAllowedDocument({ size: 6 * 1024 * 1024, type: 'application/pdf' })).toBe(false);
     expect(isAllowedDocument({ size: 1024, type: 'text/html' })).toBe(false);
+  });
+
+  it('requires the uploaded bytes to match the declared document type', () => {
+    expect(matchesDocumentSignature('application/pdf', new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x2d]))).toBe(true);
+    expect(matchesDocumentSignature('image/jpeg', new Uint8Array([0xff, 0xd8, 0xff, 0xe0]))).toBe(true);
+    expect(matchesDocumentSignature('image/png', new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))).toBe(true);
+    expect(matchesDocumentSignature('image/png', new Uint8Array([0x3c, 0x68, 0x74, 0x6d, 0x6c]))).toBe(false);
+    expect(matchesDocumentSignature('text/html', new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x2d]))).toBe(false);
   });
 
   it('validates real ISO calendar dates', () => {

@@ -26,6 +26,21 @@ export function isAllowedDocument(file: Pick<File, 'size' | 'type'>): boolean {
     && DOCUMENT_MIME_TYPES.some((mimeType) => mimeType === file.type);
 }
 
+export function matchesDocumentSignature(mimeType: string, bytes: Uint8Array): boolean {
+  const startsWith = (signature: readonly number[]) =>
+    bytes.length >= signature.length && signature.every((value, index) => bytes[index] === value);
+
+  if (mimeType === 'application/pdf') return startsWith([0x25, 0x50, 0x44, 0x46, 0x2d]);
+  if (mimeType === 'image/jpeg') return startsWith([0xff, 0xd8, 0xff]);
+  if (mimeType === 'image/png') return startsWith([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+  return false;
+}
+
+export async function hasAllowedDocumentSignature(file: File): Promise<boolean> {
+  const header = new Uint8Array(await file.slice(0, 8).arrayBuffer());
+  return matchesDocumentSignature(file.type, header);
+}
+
 export function parseExpirationDate(value: unknown): string | null | undefined {
   if (value === '' || value === null) return null;
   if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return undefined;
