@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Share, Text } from "react-native";
+import { Share, StyleSheet, Text, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { ACTIVE_RIDE_TRANSITIONS } from "@hatidone/types";
 import {
@@ -13,11 +13,16 @@ import {
   RideChat,
   Row,
   Screen,
+  StatusPill,
+  LoadingSkeleton,
+  userError,
+  theme,
   dateTime,
   money,
   useAuth,
   useResource,
 } from "@hatidone/mobile";
+import { bookingTone, RouteSummary } from "../../src/components";
 import { getBooking, statusLabel, terminalStatuses } from "../../src/data";
 interface Driver {
   driver_id: string;
@@ -44,6 +49,8 @@ export default function BookingDetail() {
   const [busy, setBusy] = useState(false);
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [showChat, setShowChat] = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
+  const [showTimeline, setShowTimeline] = useState(false);
   const [report, setReport] = useState(false);
   const [category, setCategory] = useState("safety");
   const [details, setDetails] = useState("");
@@ -138,7 +145,13 @@ export default function BookingDetail() {
     const result = await client.rpc("cancel_own_ride_request", {
       p_ride_request_id: id,
     });
-    if (result.error) setError(result.error.message);
+    if (result.error)
+      setError(
+        userError(
+          result.error,
+          "We couldn’t complete this request. Refresh your booking and try again.",
+        ),
+      );
     else {
       setConfirmCancel(false);
       setSuccess("Booking cancelled.");
@@ -155,7 +168,13 @@ export default function BookingDetail() {
       p_category: category,
       p_details: details.trim(),
     });
-    if (result.error) setError(result.error.message);
+    if (result.error)
+      setError(
+        userError(
+          result.error,
+          "We couldn’t complete this request. Refresh your booking and try again.",
+        ),
+      );
     else {
       setReport(false);
       setDetails("");
@@ -174,64 +193,85 @@ export default function BookingDetail() {
       });
     } catch (reason) {
       setError(
-        reason instanceof Error ? reason.message : "Could not open sharing.",
+        userError(reason, "We couldn’t open sharing. Please try again."),
       );
     }
   }
   const data = resource.data;
+  const stages = [
+    "requested",
+    "searching",
+    "assigned",
+    "driver_en_route",
+    "driver_arrived",
+    "trip_started",
+    "trip_completed",
+  ];
+  const currentStage = stages.indexOf(
+    data?.booking.status === "offered"
+      ? "searching"
+      : (data?.booking.status ?? "requested"),
+  );
   return (
-    <Screen refreshing={resource.loading} onRefresh={() => void reload()}>
+    <Screen
+      bottomInset
+      refreshing={resource.loading}
+      onRefresh={() => void reload()}
+    >
       <Button
         label="Back to bookings"
         variant="secondary"
         onPress={() => router.replace("/(tabs)/bookings")}
       />
-      {resource.loading && !data && <Muted>Loading your booking…</Muted>}
+      {resource.loading && !data && <LoadingSkeleton lines={6} />}
       {(resource.error || error) && (
-        <Notice tone="error">{error || resource.error}</Notice>
+        <Notice tone="error">
+          {error ||
+            "We couldn’t load this booking. Check your connection and try again."}
+        </Notice>
+      )}
+      {resource.error && (
+        <Button label="Retry booking" onPress={() => void reload()} />
       )}
       {success && <Notice tone="success">{success}</Notice>}
       {data && (
         <>
-          <Chip label={statusLabel(data.booking.status)} selected />
-          <Heading>{data.booking.pickup_address}</Heading>
-          <Muted>to</Muted>
-          <Heading>{data.booking.dropoff_address}</Heading>
-          <Card>
-            <Muted>{dateTime(data.booking.scheduled_at)}</Muted>
-            <Text>
-              {data.booking.passenger_count} passenger(s) ·{" "}
-              {data.booking.vehicle_type} · {data.booking.service_type}
-            </Text>
-            <Text>
-              Ride fare estimate: {money(data.booking.estimated_fare)}
-            </Text>
-            <Text>
-              Toll estimate:{" "}
-              {data.booking.estimated_toll_amount === null
-                ? "Unknown; confirm with driver"
-                : money(data.booking.estimated_toll_amount)}
-            </Text>
-            <Muted>
-              Local route estimate ·{" "}
-              {(data.booking.estimated_distance_meters / 1000).toFixed(1)} km ·{" "}
-              {Math.ceil(data.booking.estimated_duration_seconds / 60)} min.
-              Road distance and traffic may differ.
-            </Muted>
-            <Muted>Cash payment · No payment is collected in this app.</Muted>
-            {data.booking.passenger_notes && (
-              <Text>{data.booking.passenger_notes}</Text>
-            )}
-          </Card>
+          <StatusPill
+            label={statusLabel(data.booking.status)}
+            tone={bookingTone(data.booking.status)}
+          />
+          <RouteSummary
+            pickup={data.booking.pickup_address}
+            destination={data.booking.dropoff_address}
+          />
+          <Muted>{dateTime(data.booking.scheduled_at)}</Muted>
           {data.driver ? (
             <Card>
-              <Heading>Your driver</Heading>
-              <Text style={{ fontSize: 20 }}>{data.driver.name}</Text>
-              <Chip
+              <View style={styles.driverHeader}>
+                <View style={styles.avatar} accessible={false}>
+                  <Text style={styles.initials}>
+                    {data.driver.name
+                      .split(" ")
+                      .map((part) => part[0])
+                      .slice(0, 2)
+                      .join("")}
+                  </Text>
+                </View>
+                <View style={{ flex: 1, gap: 3 }}>
+                  <Muted>Your driver</Muted>
+                  <Heading size="section">{data.driver.name}</Heading>
+                </View>
+              </View>
+              <StatusPill
+                tone={
+                  data.driver.verification_status === "verified"
+                    ? "success"
+                    : "warning"
+                }
                 label={
                   data.driver.verification_status === "verified"
                     ? "Verified driver"
-                    : `Verification: ${data.driver.verification_status}`
+                    : "Verification in progress"
                 }
               />
               <Text>
@@ -244,14 +284,21 @@ export default function BookingDetail() {
               <Muted>
                 {data.driver.rating_count > 0
                   ? `${Number(data.driver.rating).toFixed(1)} rating · ${data.driver.rating_count} reviews`
-                  : "New to the network · not enough trips for a rating"}
+                  : "New to HatidOne · No rating yet"}
               </Muted>
               {data.pin && (
-                <Notice>
-                  Pickup PIN: {data.pin}
-                  {"\n"}Share this PIN with your driver only when you are at the
-                  vehicle and ready to start.
-                </Notice>
+                <View style={styles.pin}>
+                  <Muted>Your pickup PIN</Muted>
+                  <Text
+                    accessibilityLabel={`Pickup PIN ${data.pin.split("").join(" ")}`}
+                    style={styles.pinText}
+                  >
+                    {data.pin}
+                  </Text>
+                  <Muted>
+                    Share only when you’re at the vehicle and ready to start.
+                  </Muted>
+                </View>
               )}
               <Button
                 label={
@@ -259,7 +306,6 @@ export default function BookingDetail() {
                     ? "Hide conversation"
                     : `Message driver${data.unread ? ` · ${data.unread} unread` : ""}`
                 }
-                variant="secondary"
                 onPress={() => {
                   setShowChat(!showChat);
                   if (showChat) void reload();
@@ -269,21 +315,123 @@ export default function BookingDetail() {
           ) : (
             !terminalStatuses.has(data.booking.status) && (
               <Notice>
-                We’re finding a driver. Keep this booking open for updates, or
-                check Activity later.
+                We’re finding a driver. We’ll show their details here once your
+                ride is assigned.
               </Notice>
             )
           )}
           {showChat && data.driver && <RideChat rideRequestId={id} />}
           <Card>
-            <Heading>Booking timeline</Heading>
-            {data.events.map((event) => (
-              <Row key={event.id}>
-                <Chip label={statusLabel(event.to_status)} />
-                <Muted>{dateTime(event.created_at)}</Muted>
-              </Row>
-            ))}
+            <Heading size="section">Ride progress</Heading>
+            {currentStage >= 0 && (
+              <View
+                style={styles.progress}
+                accessibilityLabel={`Ride progress: ${statusLabel(data.booking.status)}`}
+              >
+                {stages.map((stage, index) => (
+                  <View
+                    key={stage}
+                    style={[
+                      styles.segment,
+                      index === currentStage && {
+                        backgroundColor: theme.primary,
+                      },
+                    ]}
+                  />
+                ))}
+              </View>
+            )}
+            <Text style={styles.body}>{statusLabel(data.booking.status)}</Text>
+            {currentStage >= 0 && currentStage < 6 && (
+              <Muted>Next: {statusLabel(stages[currentStage + 1])}</Muted>
+            )}
+            <Button
+              label={showTimeline ? "Hide timeline" : "View timeline"}
+              variant="secondary"
+              onPress={() => setShowTimeline(!showTimeline)}
+            />
+            {showTimeline &&
+              stages.map((stage, index) => {
+                const event = data.events.find(
+                  (item) =>
+                    item.to_status === stage ||
+                    (stage === "searching" && item.to_status === "offered"),
+                );
+                return (
+                  <View key={stage} style={styles.timelineRow}>
+                    <View
+                      style={[
+                        styles.timelineDot,
+                        index === currentStage && {
+                          backgroundColor: theme.primary,
+                        },
+                      ]}
+                    />
+                    <View style={{ flex: 1 }}>
+                      <Text
+                        style={[
+                          styles.body,
+                          index === currentStage && { fontWeight: "600" },
+                        ]}
+                      >
+                        {statusLabel(stage)}
+                        {index === currentStage ? " · Current" : ""}
+                      </Text>
+                      <Muted>{event ? dateTime(event.created_at) : "—"}</Muted>
+                    </View>
+                  </View>
+                );
+              })}
+            {showTimeline &&
+              currentStage < 0 &&
+              data.events
+                .filter((event) => !stages.includes(event.to_status))
+                .map((event) => (
+                  <Muted key={event.id}>
+                    {statusLabel(event.to_status)} ·{" "}
+                    {dateTime(event.created_at)}
+                  </Muted>
+                ))}
           </Card>
+          <Button
+            label={
+              showDetails ? "Hide fare & ride details" : "Fare & ride details"
+            }
+            variant="secondary"
+            onPress={() => setShowDetails(!showDetails)}
+          />
+          {showDetails && (
+            <>
+              <Card>
+                <Muted>{dateTime(data.booking.scheduled_at)}</Muted>
+                <Text>
+                  {data.booking.passenger_count} passenger(s) ·{" "}
+                  {data.booking.vehicle_type} · {data.booking.service_type}
+                </Text>
+                <Text>
+                  Ride fare estimate: {money(data.booking.estimated_fare)}
+                </Text>
+                <Text>
+                  Toll estimate:{" "}
+                  {data.booking.estimated_toll_amount === null
+                    ? "Unknown; confirm with driver"
+                    : money(data.booking.estimated_toll_amount)}
+                </Text>
+                <Muted>
+                  Local route estimate ·{" "}
+                  {(data.booking.estimated_distance_meters / 1000).toFixed(1)}{" "}
+                  km · {Math.ceil(data.booking.estimated_duration_seconds / 60)}{" "}
+                  min. Road distance and traffic may differ.
+                </Muted>
+                <Muted>
+                  Cash payment · No payment is collected in this app.
+                </Muted>
+                {data.booking.passenger_notes && (
+                  <Text>{data.booking.passenger_notes}</Text>
+                )}
+              </Card>
+            </>
+          )}
           <Button
             label="Share trip summary"
             variant="secondary"
@@ -291,7 +439,8 @@ export default function BookingDetail() {
           />
           <Muted>
             Share your pickup, destination and schedule with a trusted contact.
-            The booking link requires authorization and does not provide public tracking.
+            The booking link requires authorization and does not provide public
+            tracking.
           </Muted>
           {data.booking.status === "trip_completed" && (
             <Button
@@ -306,10 +455,10 @@ export default function BookingDetail() {
           ) &&
             (confirmCancel ? (
               <Card>
-                <Heading>Cancel this booking?</Heading>
+                <Heading size="section">Cancel this booking?</Heading>
                 <Muted>
-                  Your driver assignment and pending offers will be cancelled by
-                  the server.
+                  You’ll lose your current driver assignment. You can book
+                  another ride whenever you’re ready.
                 </Muted>
                 <Button
                   label="Confirm cancellation"
@@ -337,7 +486,7 @@ export default function BookingDetail() {
           />
           {report && (
             <Card>
-              <Heading>Tell us what happened</Heading>
+              <Heading size="section">Tell us what happened</Heading>
               <Muted>
                 Reports are private to authorized operations staff. For urgent
                 danger, contact local emergency services directly.
@@ -347,7 +496,7 @@ export default function BookingDetail() {
                   (value) => (
                     <Chip
                       key={value}
-                      label={value}
+                      label={value[0].toUpperCase() + value.slice(1)}
                       selected={category === value}
                       onPress={() => setCategory(value)}
                     />
@@ -374,3 +523,44 @@ export default function BookingDetail() {
     </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  driverHeader: { flexDirection: "row", alignItems: "center", gap: 12 },
+  avatar: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: theme.background,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  initials: { fontSize: 19, fontWeight: "500", color: theme.text },
+  pin: {
+    padding: 14,
+    backgroundColor: theme.background,
+    borderRadius: 10,
+    gap: 5,
+  },
+  pinText: {
+    fontSize: 32,
+    letterSpacing: 6,
+    fontWeight: "600",
+    color: theme.text,
+  },
+  progress: { flexDirection: "row", gap: 5 },
+  segment: {
+    height: 5,
+    borderRadius: 3,
+    flex: 1,
+    backgroundColor: theme.border,
+  },
+  timelineRow: { flexDirection: "row", gap: 12, alignItems: "flex-start" },
+  timelineDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    marginTop: 6,
+    backgroundColor: theme.border,
+  },
+  body: { fontSize: 16, lineHeight: 23, color: theme.text },
+});

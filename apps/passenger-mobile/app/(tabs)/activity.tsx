@@ -4,6 +4,9 @@ import {
   Button,
   Card,
   Heading,
+  LoadingSkeleton,
+  StatusPill,
+  userError,
   Muted,
   Notice,
   Screen,
@@ -15,6 +18,7 @@ import { getNotifications } from "../../src/data";
 export default function Activity() {
   const { client, session } = useAuth();
   const [error, setError] = useState("");
+  const [visibleCount, setVisibleCount] = useState(20);
   const resource = useResource(
     () => getNotifications(client, session?.user.id),
     [client, session?.user.id],
@@ -51,7 +55,13 @@ export default function Activity() {
     const result = await client.rpc("mark_notification_read", {
       p_notification_id: id,
     });
-    if (result.error) setError(result.error.message);
+    if (result.error)
+      setError(
+        userError(
+          result.error,
+          "We couldn’t mark this update as read. Please try again.",
+        ),
+      );
     else {
       setError("");
       await reload();
@@ -60,24 +70,24 @@ export default function Activity() {
   return (
     <Screen refreshing={resource.loading} onRefresh={() => void reload()}>
       <Heading>Activity</Heading>
-      <Muted>Your in-app trip updates. Pull down to refresh at any time.</Muted>
+      <Muted>Booking updates and messages, all in one place.</Muted>
       {(error || resource.error) && (
-        <Notice tone="error">{error || resource.error}</Notice>
+        <Notice tone="error">
+          {error || "We couldn’t load your updates. Pull down to try again."}
+        </Notice>
       )}
-      {resource.loading && !resource.data && <Muted>Loading updates…</Muted>}
+      {resource.loading && !resource.data && <LoadingSkeleton lines={4} />}
       {resource.data?.length === 0 && (
         <Card>
-          <Heading>You’re all caught up</Heading>
+          <Heading size="section">You’re all caught up</Heading>
           <Muted>Booking and driver updates will appear here.</Muted>
         </Card>
       )}
-      {resource.data?.map((notification) => (
+      {resource.data?.slice(0, visibleCount).map((notification) => (
         <Card key={notification.id}>
-          <Muted>
-            {notification.read_at ? "READ" : "NEW"} ·{" "}
-            {dateTime(notification.created_at)}
-          </Muted>
-          <Heading>{notification.title}</Heading>
+          {!notification.read_at && <StatusPill label="New update" />}
+          <Heading size="section">{notification.title}</Heading>
+          <Muted>{dateTime(notification.created_at)}</Muted>
           <Muted>{notification.body}</Muted>
           {notification.ride_request_id && (
             <Button
@@ -100,6 +110,13 @@ export default function Activity() {
           )}
         </Card>
       ))}
+      {resource.data && resource.data.length > visibleCount && (
+        <Button
+          label="Show more updates"
+          variant="secondary"
+          onPress={() => setVisibleCount((value) => value + 20)}
+        />
+      )}
     </Screen>
   );
 }

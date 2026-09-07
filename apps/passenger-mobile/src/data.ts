@@ -61,9 +61,9 @@ export const terminalStatuses = new Set<string>([
 ]);
 export function statusLabel(status: string) {
   const labels: Record<string, string> = {
-    requested: "Finding your driver",
-    searching: "Searching",
-    offered: "Driver offer sent",
+    requested: "Booking requested",
+    searching: "Finding a driver",
+    offered: "Finding a driver",
     assigned: "Driver assigned",
     driver_en_route: "Driver heading to pickup",
     driver_arrived: "Driver has arrived",
@@ -73,7 +73,8 @@ export function statusLabel(status: string) {
     driver_cancelled: "Cancelled by driver",
     operator_cancelled: "Cancelled by operations",
     no_driver_found: "No driver available",
-    no_show: "No-show recorded",
+    no_show: "Pickup missed",
+    expired: "Booking expired",
   };
   return labels[status] ?? status.replaceAll("_", " ");
 }

@@ -1,9 +1,14 @@
 import { useEffect, useState } from "react";
+import { View } from "react-native";
 import { router } from "expo-router";
 import {
   Button,
   Card,
   Chip,
+  Row,
+  StatusPill,
+  LoadingSkeleton,
+  userError,
   Field,
   Heading,
   Muted,
@@ -19,6 +24,8 @@ interface Contact {
 }
 export default function Account() {
   const auth = useAuth();
+  const [section, setSection] = useState("profile");
+  const [addingContact, setAddingContact] = useState(false);
   const [firstName, setFirstName] = useState(auth.profile?.first_name ?? "");
   const [lastName, setLastName] = useState(auth.profile?.last_name ?? "");
   const [phone, setPhone] = useState(auth.profile?.phone ?? "");
@@ -51,7 +58,12 @@ export default function Account() {
       await action();
       setSuccess(message);
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "Unable to save.");
+      setError(
+        userError(
+          reason,
+          "We couldn’t save your changes. Check the details and try again.",
+        ),
+      );
     } finally {
       setBusy(false);
     }
@@ -79,6 +91,7 @@ export default function Account() {
     if (result.error) throw new Error(result.error.message);
     setContactName("");
     setContactPhone("");
+    setAddingContact(false);
     await contacts.reload();
   }
   async function removeContact(id: string) {
@@ -91,115 +104,163 @@ export default function Account() {
     await contacts.reload();
   }
   return (
-    <Screen>
+    <Screen scrollKey={section}>
       <Heading>Your account</Heading>
-      <Card>
-        <Heading>
-          {auth.profile?.first_name} {auth.profile?.last_name}
-        </Heading>
-        <Muted>{auth.session?.user.email}</Muted>
-        <Chip
-          label={
-            auth.profile?.phone_verified
-              ? "Phone verified"
-              : "Phone not verified"
-          }
-        />
-        <Muted>Account status: {auth.profile?.account_status}</Muted>
-        <Field
-          label="First name"
-          value={firstName}
-          onChangeText={setFirstName}
-          maxLength={100}
-        />
-        <Field
-          label="Last name"
-          value={lastName}
-          onChangeText={setLastName}
-          maxLength={100}
-        />
-        <Field
-          label="Phone"
-          value={phone}
-          onChangeText={setPhone}
-          keyboardType="phone-pad"
-          maxLength={30}
-        />
-        <Button
-          label="Save profile"
-          loading={busy}
-          onPress={() => void run(saveProfile, "Profile saved.")}
-        />
-      </Card>
-      <Button
-        label="View your trip activity"
-        variant="secondary"
-        onPress={() => router.push("/(tabs)/bookings")}
-      />
+      <Row>
+        {[
+          ["profile", "Profile"],
+          ["contacts", "Emergency contacts"],
+        ].map(([value, label]) => (
+          <Chip
+            key={value}
+            label={label}
+            selected={section === value}
+            onPress={() => setSection(value)}
+          />
+        ))}
+      </Row>
       {error && <Notice tone="error">{error}</Notice>}
       {success && <Notice tone="success">{success}</Notice>}
-      <Card>
-        <Heading>Emergency contacts</Heading>
-        <Muted>
-          Private contacts for your account. Saving a contact does not send
-          alerts or share your location automatically.
-        </Muted>
-        {contacts.error && <Notice tone="error">{contacts.error}</Notice>}
-        {contacts.data?.length === 0 && <Muted>No contacts saved yet.</Muted>}
-        {contacts.data?.map((contact) => (
-          <Card key={contact.id}>
-            <Muted>
-              {contact.name} · {contact.phone}
-            </Muted>
-            {deleting === contact.id ? (
-              <>
-                <Notice>Remove this emergency contact?</Notice>
-                <Button
-                  label="Confirm remove"
-                  variant="danger"
-                  disabled={busy}
-                  onPress={() =>
-                    void run(
-                      () => removeContact(contact.id),
-                      "Emergency contact removed.",
-                    )
-                  }
-                />
-                <Button
-                  label="Keep contact"
-                  variant="secondary"
-                  onPress={() => setDeleting(null)}
-                />
-              </>
-            ) : (
-              <Button
-                label={`Remove ${contact.name}`}
-                variant="secondary"
-                onPress={() => setDeleting(contact.id)}
-              />
-            )}
+      {section === "profile" && (
+        <>
+          <Card>
+            <Heading size="section">
+              {auth.profile?.first_name} {auth.profile?.last_name}
+            </Heading>
+            <Muted>{auth.session?.user.email}</Muted>
+            <StatusPill
+              tone={auth.profile?.phone_verified ? "success" : "neutral"}
+              label={
+                auth.profile?.phone_verified
+                  ? "Phone verified"
+                  : "Phone not verified"
+              }
+            />
+
+            <Field
+              label="First name"
+              autoComplete="given-name"
+              textContentType="givenName"
+              value={firstName}
+              onChangeText={setFirstName}
+              maxLength={100}
+            />
+            <Field
+              label="Last name (optional)"
+              autoComplete="family-name"
+              textContentType="familyName"
+              value={lastName}
+              onChangeText={setLastName}
+              maxLength={100}
+            />
+            <Field
+              label="Phone (optional)"
+              autoComplete="tel"
+              textContentType="telephoneNumber"
+              value={phone}
+              onChangeText={setPhone}
+              keyboardType="phone-pad"
+              maxLength={30}
+            />
+            <Button
+              label="Save profile"
+              disabled={!firstName.trim()}
+              loading={busy}
+              onPress={() => void run(saveProfile, "Profile saved.")}
+            />
           </Card>
-        ))}
-        <Field
-          label="Contact name"
-          value={contactName}
-          onChangeText={setContactName}
-          maxLength={120}
-        />
-        <Field
-          label="Contact phone"
-          value={contactPhone}
-          onChangeText={setContactPhone}
-          keyboardType="phone-pad"
-          maxLength={30}
-        />
-        <Button
-          label="Save emergency contact"
-          loading={busy}
-          disabled={!contactName.trim() || !contactPhone.trim()}
-          onPress={() => void run(addContact, "Emergency contact saved.")}
-        />
-      </Card>
+          <Button
+            label="View your trip activity"
+            variant="secondary"
+            onPress={() => router.push("/(tabs)/bookings")}
+          />
+        </>
+      )}
+      {section === "contacts" && (
+        <Card>
+          <Heading size="section">People you trust</Heading>
+          <Muted>
+            Keep their details handy. Adding a contact does not send alerts or
+            share your location.
+          </Muted>
+          {contacts.error && (
+            <>
+              <Notice tone="error">We couldn’t load your contacts.</Notice>
+              <Button
+                label="Retry contacts"
+                variant="secondary"
+                onPress={() => void contacts.reload()}
+              />
+            </>
+          )}
+          {contacts.loading && !contacts.data && <LoadingSkeleton lines={3} />}
+          {contacts.data?.length === 0 && <Muted>No contacts saved yet.</Muted>}
+          {contacts.data?.map((contact) => (
+            <View key={contact.id} style={{ gap: 12 }}>
+              <Muted>
+                {contact.name} · {contact.phone}
+              </Muted>
+              {deleting === contact.id ? (
+                <>
+                  <Notice>Remove this emergency contact?</Notice>
+                  <Button
+                    label="Confirm remove"
+                    variant="danger"
+                    disabled={busy}
+                    onPress={() =>
+                      void run(
+                        () => removeContact(contact.id),
+                        "Emergency contact removed.",
+                      )
+                    }
+                  />
+                  <Button
+                    label="Keep contact"
+                    variant="secondary"
+                    onPress={() => setDeleting(null)}
+                  />
+                </>
+              ) : (
+                <Button
+                  label={`Remove ${contact.name}`}
+                  variant="secondary"
+                  onPress={() => setDeleting(contact.id)}
+                />
+              )}
+            </View>
+          ))}
+          <Button
+            label={
+              addingContact ? "Close contact form" : "Add emergency contact"
+            }
+            variant="secondary"
+            onPress={() => setAddingContact(!addingContact)}
+          />
+          {addingContact && (
+            <>
+              <Field
+                label="Contact name"
+                value={contactName}
+                onChangeText={setContactName}
+                maxLength={120}
+              />
+              <Field
+                label="Contact phone"
+                value={contactPhone}
+                onChangeText={setContactPhone}
+                keyboardType="phone-pad"
+                maxLength={30}
+              />
+              <Button
+                label="Save emergency contact"
+                loading={busy}
+                disabled={!contactName.trim() || !contactPhone.trim()}
+                onPress={() => void run(addContact, "Emergency contact saved.")}
+              />
+            </>
+          )}
+        </Card>
+      )}
       <Button
         label="Sign out"
         variant="secondary"

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Text } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { randomUUID } from "expo-crypto";
 import {
@@ -21,6 +21,8 @@ import {
   dateTime,
   money,
   useAuth,
+  userError,
+  theme,
 } from "@hatidone/mobile";
 import { getBooking } from "../src/data";
 import { LocationField } from "../src/LocationField";
@@ -109,9 +111,10 @@ export default function Book() {
       })
       .catch((reason: unknown) =>
         setError(
-          reason instanceof Error
-            ? reason.message
-            : "Could not load previous route",
+          userError(
+            reason,
+            "We couldn’t load that route. Enter your pickup and destination to try again.",
+          ),
         ),
       );
     return () => {
@@ -184,7 +187,7 @@ export default function Book() {
           throw new Error("Enter both pickup and destination.");
         if (!pickup.coordinates || !destination.coordinates)
           throw new Error(
-            "Choose known service locations or enter coordinates so we can estimate this route. No maps key is needed.",
+            "Choose a suggested place or add map coordinates for both locations to estimate your ride.",
           );
         setRoute(
           await provider.estimateRoute({ pickup, destination, preference }),
@@ -221,12 +224,22 @@ export default function Book() {
           p_dropoff_lng: destination.coordinates.longitude,
           p_vehicle_type: vehicle,
         });
-        if (result.error) throw new Error(result.error.message);
+        if (result.error)
+          throw new Error(
+            userError(
+              result.error,
+              "We couldn’t complete this request. Please try again.",
+            ),
+          );
         const quote = result.data?.[0] as FareQuote | undefined;
         if (!quote)
-          throw new Error("No server quote is available. Please retry.");
+          throw new Error("We couldn’t estimate this fare. Please try again.");
         setFare(quote);
       }
+      if (step === 3)
+        setRoute(
+          await provider.estimateRoute({ pickup, destination, preference }),
+        );
       setStep((value) => value + 1);
     } catch (reason) {
       setError(
@@ -276,7 +289,13 @@ export default function Book() {
       const result = await client.rpc("create_transport_request", {
         p_payload: { ...payload, client_request_id: request.current.id },
       });
-      if (result.error) throw new Error(result.error.message);
+      if (result.error)
+        throw new Error(
+          userError(
+            result.error,
+            "We couldn’t complete this request. Please try again.",
+          ),
+        );
       if (typeof result.data !== "string")
         throw new Error(
           "Booking response was incomplete. Retry with the same details.",
@@ -297,18 +316,68 @@ export default function Book() {
     }
   }
   return (
-    <Screen>
+    <Screen
+      bottomInset
+      scrollKey={step}
+      footer={
+        <View style={{ gap: 8 }}>
+          {error && <Notice tone="error">{error}</Notice>}
+          <Button
+            label={
+              step === 4
+                ? "Confirm booking"
+                : step === 2
+                  ? "See fare estimate"
+                  : "Continue"
+            }
+            loading={busy}
+            onPress={() => void (step === 4 ? confirm() : next())}
+          />
+          {step > 0 && (
+            <Button
+              label="Back"
+              variant="secondary"
+              disabled={busy}
+              onPress={() => {
+                setStep((value) => value - 1);
+                setError("");
+              }}
+            />
+          )}
+        </View>
+      }
+    >
       <Row>
-        <Chip label={`Step ${step + 1} of 4`} selected />
+        <Muted>
+          Step {step + 1} of 5 ·{" "}
+          {["Route", "Schedule", "Vehicle", "Fare", "Confirm"][step]}
+        </Muted>
         <Chip label="Close" onPress={() => router.back()} />
       </Row>
+      <View
+        accessibilityRole="progressbar"
+        accessibilityValue={{ min: 1, max: 5, now: step + 1 }}
+        accessibilityLabel="Booking progress"
+        style={styles.progress}
+      >
+        {[0, 1, 2, 3, 4].map((value) => (
+          <View
+            key={value}
+            style={[
+              styles.progressPart,
+              value <= step && { backgroundColor: theme.primary },
+            ]}
+          />
+        ))}
+      </View>
       <Heading>
         {
           [
             "Where are you going?",
-            "Route & schedule",
-            "Your ride",
-            "Review your booking",
+            "When do you need pickup?",
+            "Choose your ride",
+            "Your fare estimate",
+            "Ready to book?",
           ][step]
         }
       </Heading>
@@ -336,34 +405,18 @@ export default function Book() {
       {step === 1 && (
         <>
           <Card>
-            <Heading>Route preference</Heading>
-            <Row>
-              <Chip
-                label="Fastest"
-                selected={preference === "fastest"}
-                onPress={() => setPreference("fastest")}
-              />
-              <Chip
-                label="Avoid tolls"
-                selected={preference === "avoid_tolls"}
-                onPress={() => setPreference("avoid_tolls")}
-              />
-            </Row>
-            <Muted>
-              This is a preference for your driver. Local estimates cannot
-              verify the fastest road or a toll-free route.
-            </Muted>
-          </Card>
-          <Card>
-            <Heading>When do you need pickup?</Heading>
             <Field
-              label="Date · YYYY-MM-DD"
+              label="Pickup date · YYYY-MM-DD"
+              autoCapitalize="none"
+              maxLength={10}
               value={date}
               onChangeText={setDate}
-              placeholder="2026-09-08"
+              placeholder={tomorrow()}
             />
             <Field
-              label="Time · HH:MM (24-hour)"
+              label="Pickup time · HH:MM (24-hour)"
+              keyboardType="numbers-and-punctuation"
+              maxLength={5}
               value={time}
               onChangeText={setTime}
               placeholder="09:00"
@@ -385,7 +438,7 @@ export default function Book() {
       {step === 2 && (
         <>
           <Card>
-            <Heading>Service</Heading>
+            <Heading size="section">Service</Heading>
             <Row>
               {[
                 ["scheduled", "Scheduled"],
@@ -408,7 +461,7 @@ export default function Book() {
               onChangeText={setCount}
               maxLength={2}
             />
-            <Heading>Vehicle</Heading>
+            <Heading size="section">Vehicle</Heading>
             <Row>
               {[
                 ["sedan", "Sedan · up to 4"],
@@ -425,7 +478,7 @@ export default function Book() {
               ))}
             </Row>
             <Field
-              label="Pickup landmark or trip notes"
+              label="Pickup landmark or trip notes (optional)"
               value={notes}
               onChangeText={setNotes}
               maxLength={500}
@@ -438,73 +491,124 @@ export default function Book() {
       {step === 3 && (
         <>
           <Card>
-            <Heading>{pickup.label}</Heading>
-            <Muted>to</Muted>
-            <Heading>{destination.label}</Heading>
-            <Muted>
-              {dateTime(new Date(`${date}T${time}:00+08:00`).toISOString())}
-            </Muted>
-            <Muted>
-              {count} passenger(s) · {vehicle} · {service} ·{" "}
-              {preference.replaceAll("_", " ")}
-            </Muted>
-            {notes && <Text>{notes}</Text>}
+            <Heading size="section">Fare breakdown</Heading>
+            <View style={styles.fareRow}>
+              <Text style={styles.body}>Ride fare</Text>
+              <Text style={styles.body}>
+                {money(fare?.estimated_fare ?? null)}
+              </Text>
+            </View>
+            <View style={styles.fareRow}>
+              <Text style={styles.body}>Estimated toll</Text>
+              <Text style={styles.body}>
+                {route?.estimatedToll == null
+                  ? "To be confirmed"
+                  : money(route.estimatedToll)}
+              </Text>
+            </View>
+            <View style={styles.fareRow}>
+              <Text style={styles.body}>Discount</Text>
+              <Text style={styles.body}>None applied</Text>
+            </View>
+            <View style={styles.total}>
+              <Muted>Estimated total</Muted>
+              <Text style={styles.amount}>
+                {money(fare?.estimated_fare ?? null)}
+              </Text>
+              <Muted>Plus any agreed toll · Cash payment</Muted>
+            </View>
+            <Notice>
+              Tolls are not included. Agree any toll costs with your driver
+              before travel.
+            </Notice>
           </Card>
           <Card>
-            <Heading>Transparent estimate</Heading>
-            <Text>Ride fare: {money(fare?.estimated_fare ?? null)}</Text>
-            <Text>
-              Estimated toll:{" "}
-              {route?.estimatedToll === null
-                ? "Unknown · confirm with your driver"
-                : money(route?.estimatedToll ?? null)}
-            </Text>
-            <Text>Discounts: None applied</Text>
-            <Text style={{ fontSize: 21, fontWeight: "600" }}>
-              Estimated total: {money(fare?.estimated_fare ?? null)} + any
-              agreed toll
-            </Text>
-            <Muted>Cash payment. No payment is collected in the app.</Muted>
-            <Notice>
-              LOCAL ESTIMATE · The server calculates the ride fare and
-              recalculates it when you confirm. Actual road distance, traffic
-              and tolls are unverified.
-            </Notice>
-            {route && (
-              <Muted>
-                Approx. {((route.distanceMeters ?? 0) / 1000).toFixed(1)} km
-                straight-line · {Math.ceil((route.durationSeconds ?? 0) / 60)}{" "}
-                min using local speed assumptions. {route.disclaimer}
-              </Muted>
-            )}
+            <Heading size="section">Route preference</Heading>
+            <Row>
+              <Chip
+                label="Fastest"
+                selected={preference === "fastest"}
+                onPress={() => setPreference("fastest")}
+              />
+              <Chip
+                label="Avoid tolls"
+                selected={preference === "avoid_tolls"}
+                onPress={() => setPreference("avoid_tolls")}
+              />
+            </Row>
+            <Muted>
+              This is a preference for your driver. Local estimates cannot
+              verify the fastest road or a toll-free route.
+            </Muted>
           </Card>
+          {route && (
+            <Muted>
+              Approx. {((route.distanceMeters ?? 0) / 1000).toFixed(1)} km in a
+              straight line · {Math.ceil((route.durationSeconds ?? 0) / 60)}{" "}
+              min. Actual road distance, traffic and tolls may differ.
+            </Muted>
+          )}
         </>
       )}
-      {error && <Notice tone="error">{error}</Notice>}
-      {step < 3 ? (
-        <Button
-          label={step === 2 ? "Get server fare estimate" : "Continue"}
-          loading={busy}
-          onPress={() => void next()}
-        />
-      ) : (
-        <Button
-          label="Confirm booking"
-          loading={busy}
-          onPress={() => void confirm()}
-        />
-      )}
-      {step > 0 && (
-        <Button
-          label="Back"
-          variant="secondary"
-          disabled={busy}
-          onPress={() => {
-            setStep((value) => value - 1);
-            setError("");
-          }}
-        />
+      {step === 4 && (
+        <>
+          <Card>
+            <Muted>PICKUP</Muted>
+            <Heading size="section">{pickup.label}</Heading>
+            <Muted>DESTINATION</Muted>
+            <Heading size="section">{destination.label}</Heading>
+            <Text style={styles.body}>
+              {dateTime(new Date(`${date}T${time}:00+08:00`).toISOString())}
+            </Text>
+            <Muted>
+              {count} passenger{count === "1" ? "" : "s"} ·{" "}
+              {vehicle === "suv"
+                ? "SUV"
+                : vehicle[0].toUpperCase() + vehicle.slice(1)}{" "}
+              ·{" "}
+              {preference === "avoid_tolls"
+                ? "Avoid tolls"
+                : "Fastest route preferred"}
+            </Muted>
+            {notes && <Text style={styles.body}>{notes}</Text>}
+          </Card>
+          <Card>
+            <Muted>Estimated ride fare</Muted>
+            <Text style={styles.amount}>
+              {money(fare?.estimated_fare ?? null)}
+            </Text>
+            <Muted>Plus any agreed toll. Pay your driver in cash.</Muted>
+          </Card>
+          <Notice>
+            We’ll look for an eligible driver after you confirm. Your fare is
+            checked again when you book.
+          </Notice>
+        </>
       )}
     </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  progress: { flexDirection: "row", gap: 6 },
+  progressPart: {
+    height: 4,
+    flex: 1,
+    borderRadius: 2,
+    backgroundColor: theme.border,
+  },
+  fareRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  body: { fontSize: 16, lineHeight: 23, color: theme.text },
+  total: {
+    borderTopWidth: 1,
+    borderColor: theme.border,
+    paddingTop: 16,
+    gap: 5,
+  },
+  amount: { fontSize: 30, fontWeight: "600", color: theme.text },
+});

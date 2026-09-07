@@ -5,6 +5,8 @@ import {
   AuthScreen,
   Button,
   Heading,
+  LoadingSkeleton,
+  userError,
   Notice,
   Screen,
   useAuth,
@@ -15,7 +17,7 @@ function AppContent() {
     return (
       <Screen>
         <Heading>HatidOne</Heading>
-        <Notice>Restoring your session…</Notice>
+        <LoadingSkeleton lines={4} />
       </Screen>
     );
   if (!auth.session)
@@ -30,7 +32,9 @@ function AppContent() {
       <Screen>
         <Heading>Loading your profile</Heading>
         <Notice tone={auth.error ? "error" : "info"}>
-          {auth.error ?? "Connecting to your passenger account…"}
+          {auth.error
+            ? userError(auth.error, "We couldn’t load your profile. Try again.")
+            : "Connecting to your passenger account…"}
         </Notice>
         <Button
           label="Retry profile"
@@ -59,7 +63,10 @@ function AppContent() {
       <StatusBar style="dark" />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="book" options={{ presentation: "modal" }} />
+        <Stack.Screen
+          name="book"
+          options={{ presentation: "fullScreenModal" }}
+        />
         <Stack.Screen name="booking/[id]" />
       </Stack>
     </>

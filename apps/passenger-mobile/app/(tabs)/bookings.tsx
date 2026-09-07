@@ -4,7 +4,8 @@ import {
   Button,
   Chip,
   Heading,
-  Muted,
+  EmptyState,
+  LoadingSkeleton,
   Notice,
   Row,
   Screen,
@@ -16,6 +17,7 @@ import { BookingCard } from "../../src/components";
 export default function Bookings() {
   const { client, session } = useAuth();
   const [filter, setFilter] = useState("upcoming");
+  const [visibleCount, setVisibleCount] = useState(20);
   const resource = useResource(
     () => getBookings(client, session?.user.id),
     [client, session?.user.id],
@@ -63,16 +65,46 @@ export default function Bookings() {
             key={item}
             label={item[0].toUpperCase() + item.slice(1)}
             selected={item === filter}
-            onPress={() => setFilter(item)}
+            onPress={() => {
+              setFilter(item);
+              setVisibleCount(20);
+            }}
           />
         ))}
       </Row>
-      {resource.error && <Notice tone="error">{resource.error}</Notice>}
-      {resource.loading && !resource.data && <Muted>Loading bookings…</Muted>}
-      {bookings?.length === 0 && <Muted>No {filter} bookings yet.</Muted>}
-      {bookings?.map((booking) => (
+      {resource.error && (
+        <>
+          <Notice tone="error">
+            We couldn’t load your bookings. Check your connection and try again.
+          </Notice>
+          <Button
+            label="Retry bookings"
+            variant="secondary"
+            onPress={() => void reload()}
+          />
+        </>
+      )}
+      {resource.loading && !resource.data && <LoadingSkeleton lines={5} />}
+      {bookings?.length === 0 && (
+        <EmptyState
+          title={`No ${filter} bookings`}
+          description={
+            filter === "upcoming"
+              ? "Plan your next airport transfer, resort trip or local ride."
+              : "Your finished bookings will be kept here for easy reference."
+          }
+        />
+      )}
+      {bookings?.slice(0, visibleCount).map((booking) => (
         <BookingCard key={booking.id} booking={booking} />
       ))}
+      {bookings && bookings.length > visibleCount && (
+        <Button
+          label="Show more bookings"
+          variant="secondary"
+          onPress={() => setVisibleCount((value) => value + 20)}
+        />
+      )}
       <Button label="Plan a ride" onPress={() => router.push("/book")} />
     </Screen>
   );

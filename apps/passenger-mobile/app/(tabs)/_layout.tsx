@@ -14,8 +14,13 @@ export default function TabLayout() {
         headerShown: false,
         tabBarActiveTintColor: theme.primary,
         tabBarInactiveTintColor: theme.muted,
-        tabBarStyle: { minHeight: 66, paddingTop: 8 },
-        tabBarLabelStyle: { fontSize: 12 },
+        tabBarStyle: {
+          minHeight: 64,
+          paddingTop: 8,
+          backgroundColor: theme.surface,
+          borderTopColor: theme.border,
+        },
+        tabBarLabelStyle: { fontSize: 12, fontWeight: "500" },
         tabBarIcon: ({ color, size }) => (
           <Ionicons
             name={icons[route.name as keyof typeof icons] ?? "ellipse-outline"}

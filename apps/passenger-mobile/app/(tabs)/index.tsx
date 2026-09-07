@@ -1,11 +1,15 @@
 import { router, useFocusEffect } from "expo-router";
 import { useCallback } from "react";
-import { Text } from "react-native";
+import { Pressable, Text, View } from "react-native";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import {
   Button,
   Card,
   Chip,
   Heading,
+  EmptyState,
+  LoadingSkeleton,
+  theme,
   Muted,
   Notice,
   Row,
@@ -35,26 +39,51 @@ export default function Home() {
   const recent = resource.data?.find((b) => b.status === "trip_completed");
   return (
     <Screen refreshing={resource.loading} onRefresh={() => void reload()}>
-      <Muted>HATIDONE</Muted>
-      <Heading>Hello, {profile?.first_name ?? "traveler"}.</Heading>
-      {process.env.EXPO_PUBLIC_DEMO_MODE === "true" && (
-        <Notice>
-          DEMO / PILOT MODE · Routes use local estimates. Your bookings are
-          saved to your configured Supabase project.
-        </Notice>
-      )}
+      <View
+        style={{
+          flexDirection: "row",
+          justifyContent: "space-between",
+          alignItems: "center",
+          gap: 12,
+        }}
+      >
+        <View style={{ flex: 1 }}>
+          <Text style={{ color: theme.text, fontSize: 22, fontWeight: "600" }}>
+            HatidOne
+          </Text>
+          <Muted>Hello, {profile?.first_name ?? "traveler"}</Muted>
+        </View>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Open your account"
+          onPress={() => router.push("/(tabs)/account")}
+          style={({ pressed }) => ({
+            minWidth: 48,
+            minHeight: 48,
+            alignItems: "center",
+            justifyContent: "center",
+            borderWidth: 1,
+            borderColor: theme.border,
+            borderRadius: 12,
+            backgroundColor: pressed ? theme.border : theme.surface,
+          })}
+        >
+          <Ionicons name="person-outline" size={22} color={theme.text} />
+        </Pressable>
+      </View>
       <Card>
         <Heading>Where are you going?</Heading>
-        <Muted>
-          Choose your pickup and destination. We’ll help arrange a reliable
-          ride.
-        </Muted>
-        <Button label="Plan a ride" onPress={() => router.push("/book")} />
+        <Muted>Airport, resort or around town. Plan your next ride.</Muted>
+        <Button
+          label="Add pickup & destination"
+          onPress={() => router.push("/book")}
+        />
+        <Muted>Scheduled pickup · Clear fare before you book</Muted>
       </Card>
       <Row>
         {[
-          ["Airport Transfer", "airport"],
-          ["Resort Transfer", "resort"],
+          ["Airport", "airport"],
+          ["Resort", "resort"],
           ["Local Ride", "local"],
         ].map(([label, service]) => (
           <Chip
@@ -66,22 +95,32 @@ export default function Home() {
           />
         ))}
       </Row>
-      {resource.error && <Notice tone="error">{resource.error}</Notice>}
-      <Heading>Next ride</Heading>
-      {upcoming ? (
+      {resource.error && (
+        <>
+          <Notice tone="error">
+            We couldn’t load your rides. Check your connection and try again.
+          </Notice>
+          <Button
+            label="Retry rides"
+            variant="secondary"
+            onPress={() => void reload()}
+          />
+        </>
+      )}
+      <Heading size="section">Your next ride</Heading>
+      {resource.loading && !resource.data ? (
+        <LoadingSkeleton lines={4} />
+      ) : upcoming ? (
         <BookingCard booking={upcoming} />
       ) : (
-        <Card>
-          <Text>No upcoming rides</Text>
-          <Muted>
-            Book ahead for airport pickups, resort visits, and everyday
-            journeys.
-          </Muted>
-        </Card>
+        <EmptyState
+          title="No upcoming rides"
+          description="Your next booking will appear here. Book ahead for a smoother pickup."
+        />
       )}
       {recent && (
         <Card>
-          <Muted>YOUR RECENT DESTINATION</Muted>
+          <Heading size="section">Go again</Heading>
           <Text>{recent.dropoff_address}</Text>
           <Button
             label="Book this route again"
@@ -92,7 +131,9 @@ export default function Home() {
           />
         </Card>
       )}
-      <Muted>Clear fares. Reliable scheduling. A driver-first network.</Muted>
+      {process.env.EXPO_PUBLIC_DEMO_MODE === "true" && (
+        <Muted>Pilot service · Route and toll estimates may vary.</Muted>
+      )}
     </Screen>
   );
 }

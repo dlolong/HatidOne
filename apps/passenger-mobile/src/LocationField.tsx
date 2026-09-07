@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import * as Location from "expo-location";
 import { DEMO_LOCATIONS, type ServiceLocation } from "@hatidone/core";
 import {
@@ -9,6 +9,7 @@ import {
   Muted,
   Notice,
   Row,
+  userError,
 } from "@hatidone/mobile";
 export function LocationField({
   label,
@@ -28,13 +29,23 @@ export function LocationField({
     value.coordinates?.longitude.toString() ?? "",
   );
   const [manual, setManual] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const lastLocationId = useRef(value.id);
+  useEffect(() => {
+    if (lastLocationId.current !== value.id) {
+      setLatitude(value.coordinates?.latitude.toString() ?? "");
+      setLongitude(value.coordinates?.longitude.toString() ?? "");
+      lastLocationId.current = value.id;
+    }
+  }, [value.id, value.coordinates?.latitude, value.coordinates?.longitude]);
   function select(location: ServiceLocation) {
     onChange(location);
     setLatitude(location.coordinates?.latitude.toString() ?? "");
     setLongitude(location.coordinates?.longitude.toString() ?? "");
     setError("");
+    setShowSuggestions(false);
   }
   function coordinates(lat: string, lng: string) {
     setLatitude(lat);
@@ -55,10 +66,12 @@ export function LocationField({
     setError("");
     try {
       const permission = await Location.requestForegroundPermissionsAsync();
-      if (!permission.granted)
-        throw new Error(
-          "Location permission was declined. Choose a reference point or enter coordinates.",
+      if (!permission.granted) {
+        setError(
+          "Location access is off. Choose a suggested place or enable location in your device settings.",
         );
+        return;
+      }
       const current = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.Balanced,
       });
@@ -70,12 +83,13 @@ export function LocationField({
           longitude: current.coords.longitude,
         },
       });
-      setManual(true);
+      setManual(false);
     } catch (reason) {
       setError(
-        reason instanceof Error
-          ? reason.message
-          : "Location unavailable. Enter coordinates manually.",
+        userError(
+          reason,
+          "We couldn’t find your location. Choose a suggested place or try again.",
+        ),
       );
     } finally {
       setBusy(false);
@@ -91,17 +105,26 @@ export function LocationField({
     <Card>
       <Field
         label={label}
-        placeholder="Address or known service location"
+        placeholder={
+          allowGps ? "Pickup address or landmark" : "Where are you going?"
+        }
         value={value.label}
         maxLength={240}
         onChangeText={(label) => {
           onChange({ id: "manual", label });
           setLatitude("");
           setLongitude("");
+          setShowSuggestions(true);
         }}
       />
       <Row>
-        {(suggestions.length ? suggestions : DEMO_LOCATIONS).map((location) => (
+        {(showSuggestions || !value.coordinates
+          ? (suggestions.length ? suggestions : DEMO_LOCATIONS).slice(
+              0,
+              showSuggestions ? undefined : 2,
+            )
+          : []
+        ).map((location) => (
           <Chip
             key={location.id}
             label={location.label}
@@ -110,23 +133,29 @@ export function LocationField({
           />
         ))}
       </Row>
-      <Muted>
-        Reference points are approximate. Add exact building, terminal, or
-        landmark details in your trip notes.
-      </Muted>
-      {value.coordinates && (
+      {value.coordinates ? (
         <Muted>
-          Coordinates: {value.coordinates.latitude.toFixed(5)},{" "}
-          {value.coordinates.longitude.toFixed(5)}
+          Location selected. Add your exact meeting point in trip notes.
         </Muted>
+      ) : (
+        <Muted>Choose a suggested place for a fare estimate.</Muted>
       )}
-      <Button
-        label={manual ? "Hide coordinate fields" : "Enter exact coordinates"}
-        variant="secondary"
-        onPress={() => setManual(!manual)}
-      />
+      <Row>
+        <Chip
+          label={showSuggestions ? "Fewer places" : "Browse places"}
+          onPress={() => setShowSuggestions(!showSuggestions)}
+        />
+        <Chip
+          label={manual ? "Hide coordinates" : "Map coordinates"}
+          onPress={() => setManual(!manual)}
+        />
+      </Row>
       {manual && (
         <>
+          <Muted>
+            Use latitude and longitude from your map app for places outside our
+            suggestions.
+          </Muted>
           <Field
             label={`${label} latitude`}
             keyboardType="numbers-and-punctuation"
