@@ -15,3 +15,11 @@ describe('auth callback URL', () => {
     expect(authCallbackUrl('https://user:password@hatidone.example')).toBeNull();
   });
 });
+
+import { safeReturnPath } from './redirects';
+describe('safe booking and referral return links', () => {
+  it('preserves local intent while rejecting external redirects', () => {
+    expect(safeReturnPath('/book?partner_id=example')).toBe('/book?partner_id=example');
+    for (const unsafe of ['//evil.example','/\\evil.example','https://evil.example','/\nevil.example',null]) expect(safeReturnPath(unsafe)).toBe('/dashboard');
+  });
+});

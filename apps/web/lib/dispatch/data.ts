@@ -13,6 +13,8 @@ export type DriverOffer = {
     scheduledAt: string | null;
     vehicleType: string;
     estimatedFare: number | string | null;
+    platformCommission: number | string | null;
+    driverEarnings: number | string | null;
   };
 };
 
@@ -56,7 +58,7 @@ export async function getDriverDispatchData() {
   const offers = await Promise.all((offerRows ?? []).map(async (offer): Promise<DriverOffer | null> => {
     const { data: ride } = await supabase
       .from('ride_requests')
-      .select('id, pickup_address, dropoff_address, scheduled_at, vehicle_type, estimated_fare')
+      .select('id, pickup_address, dropoff_address, scheduled_at, vehicle_type, estimated_fare, platform_commission, driver_earnings')
       .eq('id', offer.ride_request_id)
       .maybeSingle();
     if (!ride) return null;
@@ -71,6 +73,8 @@ export async function getDriverDispatchData() {
         scheduledAt: ride.scheduled_at === null ? null : String(ride.scheduled_at),
         vehicleType: String(ride.vehicle_type),
         estimatedFare: ride.estimated_fare,
+        platformCommission: ride.platform_commission,
+        driverEarnings: ride.driver_earnings,
       },
     };
   }));

@@ -1,16 +1,17 @@
+import { safeReturnPath } from '@/lib/auth/redirects';
 import { AuthForm } from '@/components/auth-form';
 import { signup } from '@/app/auth/actions';
 
 type SignupPageProps = {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; next?: string }>;
 };
 
 export default async function SignupPage({ searchParams }: SignupPageProps) {
-  const { error } = await searchParams;
+  const { error, next } = await searchParams;
   return (
     <AuthForm
       action={signup}
-      alternateHref="/login"
+      alternateHref={`/login?next=${encodeURIComponent(safeReturnPath(next))}`}
       alternateLabel="Sign in"
       alternateText="Already registered?"
       description="Every new account starts securely as a passenger."
@@ -19,6 +20,7 @@ export default async function SignupPage({ searchParams }: SignupPageProps) {
       submitLabel="Create account"
       title="Create your account"
     >
+      <input type="hidden" name="next" value={safeReturnPath(next)} />
       <div className="form-grid">
         <label>First name<input autoComplete="given-name" maxLength={80} name="firstName" required /></label>
         <label>Last name<input autoComplete="family-name" maxLength={80} name="lastName" required /></label>

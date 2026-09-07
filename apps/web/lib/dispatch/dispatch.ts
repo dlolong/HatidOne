@@ -36,7 +36,7 @@ export async function createRideOffers(
   const { data, error } = await supabase.rpc('create_ride_offers', {
     p_ride_request_id: rideRequestId,
     p_radius_meters: radiusMeters,
-    p_offer_seconds: 120,
+    p_offer_seconds: null,
     p_limit: 20,
   });
   if (error) throw new Error('Ride offers could not be created');

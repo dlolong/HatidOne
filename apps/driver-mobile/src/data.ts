@@ -88,6 +88,8 @@ export type DriverData = {
   vehicleDocuments: Document[];
   vehicle: Vehicle | null;
   earnings: Earning[];
+  reliability: {completed:number;cancelled:number;noShows:number;onTime:number} | null;
+  matchingSettings: {default_matching_radius_km:number;matching_weights:Record<string,number>} | null;
 };
 export const DEFAULT_PREFERENCES: Preferences = {
   service_types: ["scheduled", "transfer", "local", "instant"],
@@ -130,8 +132,14 @@ export async function loadDriverData(
     vehicleDocuments: [],
     vehicle: null,
     earnings: [],
+    matchingSettings: null,
+    reliability: null,
   };
   if (!driver) return empty;
+  const {data:matchingSettings,error:settingsError}=await client.from("app_config").select("default_matching_radius_km,matching_weights").single();
+  if(settingsError)throw new Error(settingsError.message);
+  const {data:reliability,error:reliabilityError}=await client.rpc("get_driver_reliability",{p_driver_id:driver.id});
+  if(reliabilityError)throw new Error(reliabilityError.message);
   const [offers, assignments, prefs, docs, link, earnings] = await Promise.all([
     client
       .from("ride_offers")
@@ -210,6 +218,8 @@ export async function loadDriverData(
     if (result.error) throw new Error(result.error.message);
   const rideMap = new Map((rides.data ?? []).map((ride) => [ride.id, ride]));
   return {
+    matchingSettings,
+    reliability,
     driver,
     preferences: prefs.data ?? DEFAULT_PREFERENCES,
     documents: docs.data ?? [],

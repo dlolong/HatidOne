@@ -22,6 +22,7 @@ export function AppShell({ children, name, role }: AppShellProps) {
       <header className="app-header">
         <Link className="brand brand-light" href={dashboardPathForRole(role)}>HatidOne</Link>
         {role === 'passenger' ? <nav className="app-nav" aria-label="Passenger navigation"><Link href="/book">Book</Link><Link href="/history">History</Link></nav> : null}
+        <nav className="app-nav" aria-label="Business and activity"><Link href="/organizations">Business</Link><Link href="/notifications">Activity</Link><Link href="/referrals">Referrals</Link>{role === 'admin' && <Link href="/admin/operations">Operations</Link>}</nav>
         <div className="account-summary">
           <span><strong>{name}</strong><small>{ROLE_LABELS[role]}</small></span>
           <form action={logout}><button className="button button-header" type="submit">Sign out</button></form>

@@ -8,3 +8,8 @@ build
 .env.*.local
 /apps/web/.env.local
 !.env.example
+
+# Local Supabase CLI staging; never deploy its renumbered migrations
+.local-backend/
+.expo/
+dist/

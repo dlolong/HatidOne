@@ -1,3 +1,4 @@
+import { safeReturnPath } from '@/lib/auth/redirects';
 import { NextResponse, type NextRequest } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 
@@ -9,9 +10,7 @@ export async function GET(request: NextRequest) {
     const supabase = await createClient();
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
-      destination.pathname = '/dashboard';
-      destination.search = '';
-      return NextResponse.redirect(destination);
+      return NextResponse.redirect(new URL(safeReturnPath(request.nextUrl.searchParams.get('next')), request.nextUrl.origin));
     }
   }
 

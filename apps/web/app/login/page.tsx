@@ -1,8 +1,9 @@
+import { safeReturnPath } from '@/lib/auth/redirects';
 import { AuthForm } from '@/components/auth-form';
 import { login } from '@/app/auth/actions';
 
 type LoginPageProps = {
-  searchParams: Promise<{ error?: string; message?: string }>;
+  searchParams: Promise<{ error?: string; message?: string; next?: string }>;
 };
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
@@ -10,7 +11,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   return (
     <AuthForm
       action={login}
-      alternateHref="/signup"
+      alternateHref={`/signup?next=${encodeURIComponent(safeReturnPath(params.next))}`}
       alternateLabel="Create an account"
       alternateText="New to HatidOne?"
       description="Access your rides and account."
@@ -20,6 +21,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
       submitLabel="Sign in"
       title="Welcome back"
     >
+      <input type="hidden" name="next" value={safeReturnPath(params.next)} />
       <label>Email<input autoComplete="email" name="email" required type="email" /></label>
       <label>Password<input autoComplete="current-password" name="password" required type="password" /></label>
     </AuthForm>

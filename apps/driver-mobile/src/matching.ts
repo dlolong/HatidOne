@@ -1,5 +1,6 @@
 import {
   rankJobs,
+  matchingConfigFromSettings,
   DEMO_LOCATIONS,
   type MatchingJob,
   type MatchingDriver,
@@ -56,6 +57,7 @@ export function suggestedJobs(data: DriverData, location: Coordinates | null) {
     );
   const driver: MatchingDriver = {
     location,
+    reliability: data.reliability ?? undefined,
     available: Boolean(data.driver?.online),
     vehicleType: data.vehicle.vehicle_type,
     capacity: data.vehicle.capacity,
@@ -87,5 +89,6 @@ export function suggestedJobs(data: DriverData, location: Coordinates | null) {
       return job ? [job] : [];
     }),
     driver,
+    matchingConfigFromSettings(data.matchingSettings),
   );
 }

@@ -5,6 +5,7 @@ export default function HomePage() {
     <main className="landing-page">
       <nav className="landing-nav">
         <span className="brand">HatidOne</span>
+        <nav className="app-nav"><Link href="/drivers">Drive</Link><Link href="/fleets">Fleets</Link><Link href="/partners/resorts">Partners</Link><Link href="/business">Business</Link></nav>
         <Link className="button button-secondary" href="/login">Sign in</Link>
       </nav>
       <section className="hero">

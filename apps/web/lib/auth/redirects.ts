@@ -13,3 +13,8 @@ export function authCallbackUrl(configuredSiteUrl: string | undefined): string |
     return null;
   }
 }
+
+export function safeReturnPath(value: unknown): string {
+  if (typeof value !== 'string' || !value.startsWith('/') || value.startsWith('//') || /[\\\u0000-\u0020]/.test(value)) return '/dashboard';
+  try { const url=new URL(value,'https://hatidone.invalid'); if(url.origin!=='https://hatidone.invalid')return '/dashboard'; return `${url.pathname}${url.search}`; } catch { return '/dashboard'; }
+}

@@ -1,12 +1,40 @@
 {
   "name": "hatidone",
   "private": true,
-  "workspaces": ["apps/*", "packages/*"],
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
     "dev": "npm --workspace apps/web run dev",
     "build": "npm --workspace apps/web run build",
-    "lint": "npm --workspace apps/web run lint",
-    "typecheck": "npm --workspace apps/web run typecheck",
-    "test": "npm --workspace apps/web run test"
+    "lint": "npm run lint --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm --workspace apps/web test && npm --workspace packages/core test",
+    "dev:passenger": "npm --workspace apps/passenger-mobile start -- --port 8081",
+    "dev:driver": "npm --workspace apps/driver-mobile start -- --port 8082",
+    "backend:start": "node scripts/backend.mjs start",
+    "backend:stop": "node scripts/backend.mjs stop",
+    "backend:status": "node scripts/backend.mjs status",
+    "demo:reset": "node scripts/backend.mjs reset",
+    "demo:seed": "node scripts/backend.mjs seed",
+    "test:db": "sh supabase/tests/run-local.sh",
+    "check:mobile": "npm exec --workspace apps/passenger-mobile -- expo install --check && npm exec --workspace apps/driver-mobile -- expo install --check",
+    "demo:env": "node scripts/demo-env.mjs",
+    "test:http": "node scripts/test-http.mjs"
+  },
+  "engines": {
+    "node": ">=22.13.0 <23 || >=24"
+  },
+  "devDependencies": {
+    "@types/react": "~19.1.10",
+    "postcss": "8.5.28",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "expo-font": "14.0.12",
+    "@types/react-dom": "~19.1.0"
+  },
+  "overrides": {
+    "postcss": "8.5.28"
   }
 }

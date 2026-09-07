@@ -35,7 +35,7 @@ export default async function DriverDashboard({ searchParams }: DriverDashboardP
             <div className="offer-card-heading"><span className="status-pill status-under_review">Offer</span><span className="offer-earnings"><small>Expected gross earnings</small><strong>{money(offer.ride.estimatedFare)}</strong></span></div>
             <p><small>Pickup</small>{offer.ride.pickupAddress}</p><p><small>Drop-off</small>{offer.ride.dropoffAddress}</p>
             <dl><div><dt>Vehicle</dt><dd>{offer.ride.vehicleType}</dd></div><div><dt>Pickup distance</dt><dd>{offer.distanceMeters === null ? 'Nearby' : `${(offer.distanceMeters / 1000).toFixed(1)} km`}</dd></div><div><dt>Offer expires</dt><dd>{new Intl.DateTimeFormat('en-PH', { timeStyle: 'short', timeZone: 'Asia/Manila' }).format(new Date(offer.expiresAt))}</dd></div></dl>
-            <p className="muted">No platform fee is configured in this MVP; the fare estimate is shown as gross expected earnings.</p>
+            <p className="muted">HatidOne Commission: {money(offer.ride.platformCommission)} · Estimated driver earnings: {money(offer.ride.driverEarnings)}. Unverified tolls and other costs are excluded.</p>
             <form action={acceptOffer}><input name="offerId" type="hidden" value={offer.id} /><SubmitButton pendingLabel="Accepting…">Accept ride</SubmitButton></form>
           </article>
         ))}</div>}

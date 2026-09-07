@@ -56,17 +56,15 @@ export async function createBooking(formData: FormData) {
     fail('A fare estimate could not be calculated for this route.');
   }
 
-  const { data, error } = await supabase.rpc('create_scheduled_ride_request', {
-    p_client_request_id: requestId,
-    p_pickup_address: pickupAddress,
-    p_pickup_lat: pickupLat,
-    p_pickup_lng: pickupLng,
-    p_dropoff_address: dropoffAddress,
-    p_dropoff_lat: dropoffLat,
-    p_dropoff_lng: dropoffLng,
-    p_scheduled_at: scheduledAt.toISOString(),
-    p_vehicle_type: vehicleType,
-    p_passenger_notes: passengerNotes || null,
+  const { data, error } = await supabase.rpc('create_transport_request', {
+    p_payload: {
+      client_request_id: requestId, pickup_address: pickupAddress, pickup_lat: pickupLat, pickup_lng: pickupLng,
+      dropoff_address: dropoffAddress, dropoff_lat: dropoffLat, dropoff_lng: dropoffLng,
+      scheduled_at: scheduledAt.toISOString(), vehicle_type: vehicleType, passenger_notes: passengerNotes || null,
+      passenger_count: Number(formData.get('passengerCount') || 1), service_type: textValue(formData, 'serviceType', 20) || 'scheduled',
+      route_preference: textValue(formData, 'routePreference', 30) || 'fastest',
+      partner_id: textValue(formData, 'partnerId', 36), external_reference: textValue(formData, 'externalReference', 120),
+    },
   });
   if (error || typeof data !== 'string') fail('Your booking could not be created. Please try again.');
   revalidatePath('/passenger');
@@ -85,4 +83,11 @@ export async function cancelBooking(formData: FormData) {
   revalidatePath('/history');
   revalidatePath(`/booking/${bookingId}`);
   redirect(`/booking/${bookingId}?message=${encodeURIComponent('Booking cancelled.')}`);
+}
+
+export async function quoteBooking(input: { pickupLat: number; pickupLng: number; dropoffLat: number; dropoffLng: number; vehicleType: string }) {
+  await requireRole('passenger');
+  if (!isBookingVehicleType(input.vehicleType) || !Number.isFinite(input.pickupLat) || Math.abs(input.pickupLat)>90 || !Number.isFinite(input.dropoffLat) || Math.abs(input.dropoffLat)>90 || !Number.isFinite(input.pickupLng) || Math.abs(input.pickupLng)>180 || !Number.isFinite(input.dropoffLng) || Math.abs(input.dropoffLng)>180) return { error: 'Choose locations with valid coordinates.', quote: null };
+  try { const client = await createClient(); const quote = await createPlaceholderFareCalculator(client).quote({...input,vehicleType:input.vehicleType}); return { quote, error: null }; }
+  catch { return { quote:null,error:'Fare estimate unavailable. Check the locations and try again.' }; }
 }

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Alert, Platform, Text } from "react-native";
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   Screen,
   Heading,
@@ -52,6 +52,7 @@ const stages = [
   "trip_completed",
 ];
 export default function TripScreen() {
+  const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { data, loading, reload, busy, run, locate } = useDriver();
   const [pin, setPin] = useState("");
@@ -83,6 +84,7 @@ export default function TripScreen() {
   };
   return (
     <Screen refreshing={loading} onRefresh={() => void reload()}>
+      <Button label="Back to Trips" variant="secondary" onPress={() => router.replace("/(tabs)/trips")} />
       <Feedback />
       {!ride ? (
         <Empty title={loading ? "Loading trip…" : "Trip unavailable"}>
