@@ -1,0 +1,26 @@
+{
+  "expo": {
+    "name": "HatidOne Driver",
+    "slug": "hatidone-driver",
+    "scheme": "hatidone-driver",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "ios": { "supportsTablet": true, "bundleIdentifier": "ph.hatidone.driver" },
+    "android": { "package": "ph.hatidone.driver" },
+    "web": { "bundler": "metro", "output": "single" },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "HatidOne uses your location while this app is open to find nearby jobs and share your position with authorized trip participants.",
+          "isIosBackgroundLocationEnabled": false,
+          "isAndroidBackgroundLocationEnabled": false
+        }
+      ]
+    ],
+    "experiments": { "typedRoutes": true }
+  }
+}
