@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
+import { AppNavigation } from './app-navigation';
 import { logout } from '@/app/auth/actions';
 import { dashboardPathForRole, type AppRole } from '@/lib/auth/roles';
 
@@ -19,16 +20,17 @@ const ROLE_LABELS: Record<AppRole, string> = {
 export function AppShell({ children, name, role }: AppShellProps) {
   return (
     <div className="app-frame">
+      <a className="skip-link" href="#main-content">Skip to content</a>
       <header className="app-header">
         <Link className="brand brand-light" href={dashboardPathForRole(role)}>HatidOne</Link>
-        {role === 'passenger' ? <nav className="app-nav" aria-label="Passenger navigation"><Link href="/book">Book</Link><Link href="/history">History</Link></nav> : null}
-        <nav className="app-nav" aria-label="Business and activity"><Link href="/organizations">Business</Link><Link href="/notifications">Activity</Link><Link href="/referrals">Referrals</Link>{role === 'admin' && <Link href="/admin/operations">Operations</Link>}</nav>
+        <AppNavigation role={role} />
+        <details className="account-menu"><summary>More</summary><div className="account-menu-content"><Link href="/organizations">Business accounts</Link><Link href="/notifications">Notifications</Link><Link href="/referrals">Referrals</Link></div></details>
         <div className="account-summary">
           <span><strong>{name}</strong><small>{ROLE_LABELS[role]}</small></span>
           <form action={logout}><button className="button button-header" type="submit">Sign out</button></form>
         </div>
       </header>
-      <main className="app-main">{children}</main>
+      <main className="app-main" id="main-content">{children}</main>
     </div>
   );
 }

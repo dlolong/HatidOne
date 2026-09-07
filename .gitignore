@@ -13,3 +13,9 @@ build
 .local-backend/
 .expo/
 dist/
+
+# Expo continuous native generation; reproduce from app config.
+/apps/passenger-mobile/ios/
+/apps/passenger-mobile/android/
+/apps/driver-mobile/ios/
+/apps/driver-mobile/android/

@@ -1,3 +1,2 @@
-export default function DispatchLoading() {
-  return <div className="loading-state" role="status"><span className="spinner" aria-hidden="true" /><p>Loading dispatch queue…</p></div>;
-}
+import { LoadingSkeleton } from '@/components/ui';
+export default function Loading() { return <LoadingSkeleton label="Loading open rides…" />; }

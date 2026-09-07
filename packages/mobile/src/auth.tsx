@@ -15,6 +15,7 @@ import {
   type ReactNode,
 } from "react";
 import { Button, Card, Field, Heading, Muted, Notice, Screen } from "./ui";
+import { userError } from "./errors";
 
 export interface Profile {
   id: string;
@@ -104,7 +105,7 @@ export function AuthProvider({
       .eq("id", session.user.id)
       .single();
     if (result.error) {
-      setError(result.error.message);
+      setError(userError(result.error));
       return;
     }
     setProfile(result.data);
@@ -121,14 +122,14 @@ export function AuthProvider({
       .then(({ data, error: authError }) => {
         if (live) {
           setSession(data.session);
-          setError(authError?.message ?? null);
+          setError(authError ? userError(authError) : null);
           setLoading(false);
         }
       })
       .catch((reason: unknown) => {
         if (live) {
           setError(
-            reason instanceof Error ? reason.message : "Session restore failed",
+            userError(reason, "We couldn’t restore your session. Sign in again."),
           );
           setLoading(false);
         }
@@ -163,7 +164,7 @@ export function AuthProvider({
         .then((result) => {
           if (live) {
             setProfile(result.data);
-            setError(result.error?.message ?? null);
+            setError(result.error ? userError(result.error) : null);
           }
         });
     return () => {
@@ -189,7 +190,7 @@ export function AuthProvider({
             email: email.trim(),
             password,
           });
-          if (result.error) throw new Error(result.error.message);
+          if (result.error) throw new Error(userError(result.error));
         },
         signUp: async (email, password, firstName, lastName) => {
           if (!client) throw new Error("Supabase is not configured.");
@@ -203,7 +204,7 @@ export function AuthProvider({
               },
             },
           });
-          if (result.error) throw new Error(result.error.message);
+          if (result.error) throw new Error(userError(result.error));
           return result.data.session
             ? "Account created."
             : "Check your email to confirm your account, then sign in.";
@@ -211,7 +212,7 @@ export function AuthProvider({
         signOut: async () => {
           if (!client) return;
           const result = await client.auth.signOut();
-          if (result.error) throw new Error(result.error.message);
+          if (result.error) throw new Error(userError(result.error));
           setProfile(null);
         },
       }}
@@ -262,7 +263,7 @@ export function AuthScreen({
   return (
     <Screen>
       <Heading>{title}</Heading>
-      <Muted>{subtitle ?? "Reliable rides. A driver-first network."}</Muted>
+      <Muted>{subtitle ?? "A simpler way to get there."}</Muted>
       {!auth.configured && (
         <Notice>
           Connect your existing Supabase project using EXPO_PUBLIC_SUPABASE_URL
@@ -271,7 +272,7 @@ export function AuthScreen({
         </Notice>
       )}
       <Card>
-        <Heading>{signup ? "Create account" : "Welcome back"}</Heading>
+        <Heading size="section">{signup ? "Create your account" : "Welcome back"}</Heading>
         {signup && (
           <>
             <Field
@@ -302,6 +303,7 @@ export function AuthScreen({
           onChangeText={setPassword}
           secureTextEntry
           autoComplete={signup ? "new-password" : "current-password"}
+          hint={signup ? "At least 8 characters. Use a password you don’t use elsewhere." : undefined}
         />
         {(error || auth.error) && (
           <Notice tone="error">{error || auth.error}</Notice>
@@ -330,10 +332,7 @@ export function AuthScreen({
           />
         )}
       </Card>
-      <Muted>
-        Your account and trips are stored in Supabase. There is no simulated
-        login.
-      </Muted>
+      <Muted>Sign in securely to manage your rides and account.</Muted>
     </Screen>
   );
 }

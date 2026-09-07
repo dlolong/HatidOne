@@ -14,7 +14,7 @@ export default async function SignupPage({ searchParams }: SignupPageProps) {
       alternateHref={`/login?next=${encodeURIComponent(safeReturnPath(next))}`}
       alternateLabel="Sign in"
       alternateText="Already registered?"
-      description="Every new account starts securely as a passenger."
+      description="Book your first ride with a few simple details."
       error={error}
       pendingLabel="Creating account…"
       submitLabel="Create account"
@@ -26,7 +26,7 @@ export default async function SignupPage({ searchParams }: SignupPageProps) {
         <label>Last name<input autoComplete="family-name" maxLength={80} name="lastName" required /></label>
       </div>
       <label>Email<input autoComplete="email" name="email" required type="email" /></label>
-      <label>Password<input autoComplete="new-password" minLength={8} name="password" required type="password" /></label>
+      <label>Password<input aria-describedby="password-help" autoComplete="new-password" minLength={8} name="password" required type="password" /></label><small className="muted" id="password-help">Use at least 8 characters.</small>
     </AuthForm>
   );
 }

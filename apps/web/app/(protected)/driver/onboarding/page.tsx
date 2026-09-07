@@ -57,7 +57,7 @@ export default async function DriverOnboardingPage({ searchParams }: OnboardingP
     <div className="onboarding-page">
       <Link className="back-link" href="/driver">← Driver dashboard</Link>
       <header className="onboarding-heading">
-        <div><p className="eyebrow">Driver verification</p><h1>Onboarding</h1><p>Complete each section with accurate information. Only authorized operations staff can approve your account.</p></div>
+        <div><p className="eyebrow">Driver verification</p><h1>Onboarding</h1><p>Complete three sections to start your application. Your saved details stay here when you come back.</p></div>
         <span className={`status-pill status-${status}`}>{STATUS_LABELS[status] ?? status}</span>
       </header>
 
@@ -71,8 +71,9 @@ export default async function DriverOnboardingPage({ searchParams }: OnboardingP
       </section>
 
       <div className="onboarding-sections">
-        <section className="onboarding-card">
-          <div className="section-number">1</div><div className="section-copy"><h2>Personal details</h2><p>Your account name is fixed here. Add the contact and operating details needed for review.</p></div>
+        <details className="onboarding-card" open={!onboarding.personal?.phone || !onboarding.driver?.preferred_area}>
+          <summary>1 · Personal details <span className="muted">{onboarding.personal?.phone && onboarding.driver?.preferred_area ? 'Saved' : 'Needs information'}</span></summary>
+          <div className="section-number">1</div><div className="section-copy"><h2>Personal details</h2><p>Add your phone number and the area where you want to drive.</p></div>
           <form action={savePersonalDetails} className="form-stack">
             <fieldset disabled={!editable}>
               <div className="form-grid"><label>First name<input disabled value={onboarding.personal?.first_name ?? ''} /></label><label>Last name<input disabled value={onboarding.personal?.last_name ?? ''} /></label></div>
@@ -81,10 +82,11 @@ export default async function DriverOnboardingPage({ searchParams }: OnboardingP
               <SubmitButton pendingLabel="Saving…">Save personal details</SubmitButton>
             </fieldset>
           </form>
-        </section>
+        </details>
 
-        <section className="onboarding-card">
-          <div className="section-number">2</div><div className="section-copy"><h2>Primary vehicle</h2><p>Vehicle verification is controlled by operations staff and cannot be changed here.</p></div>
+        <details className="onboarding-card" open={!onboarding.vehicle}>
+          <summary>2 · Primary vehicle <span className="muted">{onboarding.vehicle ? 'Saved' : 'Add your vehicle'}</span></summary>
+          <div className="section-number">2</div><div className="section-copy"><h2>Primary vehicle</h2><p>Tell us about the vehicle you will use. Our team reviews it with your documents.</p></div>
           <form action={saveVehicleDetails} className="form-stack">
             <fieldset disabled={!editable}>
               <input name="vehicleId" type="hidden" value={onboarding.vehicle?.id ?? ''} />
@@ -95,9 +97,10 @@ export default async function DriverOnboardingPage({ searchParams }: OnboardingP
               <SubmitButton pendingLabel="Saving…">Save vehicle details</SubmitButton>
             </fieldset>
           </form>
-        </section>
+        </details>
 
-        <section className="onboarding-card onboarding-card-wide">
+        <details className="onboarding-card onboarding-card-wide" open={!onboarding.progress.canSubmit}>
+          <summary>3 · Documents <span className="muted">Driver’s license and vehicle registration required</span></summary>
           <div className="section-number">3</div><div className="section-copy"><h2>Private documents</h2><p>PDF, JPG, or PNG up to 5 MB. Files are stored privately and are not publicly accessible.</p></div>
           <div className="document-columns">
             <div><h3>Driver documents</h3><DocumentList documents={onboarding.driverDocuments} />
@@ -116,10 +119,11 @@ export default async function DriverOnboardingPage({ searchParams }: OnboardingP
               </fieldset></form>
             </div>
           </div>
-        </section>
+        </details>
       </div>
 
-      <section className="submit-card"><div><h2>Submit for review</h2><p>Once submitted, onboarding details are locked until operations staff finish their review or request changes.</p></div><form action={submitOnboarding}><SubmitButton disabled={!editable || !onboarding.progress.canSubmit} pendingLabel="Submitting…">Submit onboarding</SubmitButton></form></section>
+      {!onboarding.progress.canSubmit && <p className="notice">Complete your phone and service area, save your vehicle, then upload a current driver’s license and vehicle registration to submit.</p>}
+      <section className="submit-card"><div><h2>Submit for review</h2><p>Our team will review your details and documents. We’ll show the result here, including anything that needs updating.</p></div><form action={submitOnboarding}><SubmitButton disabled={!editable || !onboarding.progress.canSubmit} pendingLabel="Submitting…">Submit onboarding</SubmitButton></form></section>
     </div>
   );
 }

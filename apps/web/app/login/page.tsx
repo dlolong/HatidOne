@@ -22,8 +22,8 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
       title="Welcome back"
     >
       <input type="hidden" name="next" value={safeReturnPath(params.next)} />
-      <label>Email<input autoComplete="email" name="email" required type="email" /></label>
-      <label>Password<input autoComplete="current-password" name="password" required type="password" /></label>
+      <label>Email<input aria-describedby={params.error ? "auth-error" : undefined} aria-invalid={!!params.error} autoComplete="email" name="email" required type="email" /></label>
+      <label>Password<input aria-describedby={params.error ? "auth-error" : undefined} aria-invalid={!!params.error} autoComplete="current-password" name="password" required type="password" /></label>
     </AuthForm>
   );
 }

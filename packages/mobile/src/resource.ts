@@ -1,3 +1,4 @@
+import { userError } from "./errors";
 import {
   useCallback,
   useEffect,
@@ -26,9 +27,7 @@ export function useResource<T>(loader: () => Promise<T>, deps: DependencyList) {
     } catch (reason) {
       if (lifecycle.current.sequence === request)
         setError(
-          reason instanceof Error
-            ? reason.message
-            : "Unable to load. Please retry.",
+          userError(reason, "We couldn’t load this information. Pull down to refresh or try again."),
         );
     } finally {
       if (lifecycle.current.sequence === request) setLoading(false);

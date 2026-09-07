@@ -45,3 +45,7 @@ npm exec --workspace apps/driver-mobile -- expo export --platform all
 - `supabase/migrations`: append-only schema. Historical duplicate `0004` versions are preserved; the local runner stages uniquely numbered copies in ignored `.local-backend/`. **Never deploy those local copies to an existing remote migration history.**
 
 See [demo scenarios](docs/DEMO_SCENARIOS.md), [solo developer runbook](docs/SOLO_DEVELOPER_RUNBOOK.md), [production integrations](docs/PRODUCTION_INTEGRATIONS.md), and [completion report](docs/FINAL_COMPLETION_REPORT.md) for tested scope and remaining launch work.
+
+## UI and mobile development
+
+See [Design system](docs/DESIGN_SYSTEM.md), [UI/UX completion report](docs/UI_UX_COMPLETION_REPORT.md), and [Mobile simulator guide](docs/MOBILE_SIMULATOR_GUIDE.md). Run `npm run mobile:doctor` to check local native prerequisites. The guide covers local development builds and browser previews for both apps.

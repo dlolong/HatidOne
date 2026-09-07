@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { Text } from "react-native";
+import { Text, View } from "react-native";
+import { userError } from "./errors";
 import { randomUUID } from "expo-crypto";
 import { useAuth } from "./auth";
 import { useResource } from "./resource";
-import { Button, Card, Field, Heading, Muted, Notice, dateTime } from "./ui";
+import { Button, Card, Field, Heading, Muted, Notice, LoadingSkeleton, theme, dateTime } from "./ui";
 interface Message {
   id: string;
   sender_user_id: string;
@@ -13,6 +14,7 @@ interface Message {
 export function RideChat({ rideRequestId }: { rideRequestId: string }) {
   const { client, session } = useAuth();
   const [body, setBody] = useState("");
+  const [visible, setVisible] = useState(20);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
   const pending = useRef<{ body: string; id: string } | null>(null);
@@ -72,9 +74,7 @@ export function RideChat({ rideRequestId }: { rideRequestId: string }) {
       await reload();
     } catch (reason) {
       setError(
-        reason instanceof Error
-          ? reason.message
-          : "Message not sent. Retry safely.",
+        userError(reason, "Your message wasn’t sent. Try again; it won’t be sent twice."),
       );
     } finally {
       setSending(false);
@@ -82,27 +82,28 @@ export function RideChat({ rideRequestId }: { rideRequestId: string }) {
   }
   return (
     <Card>
-      <Heading>Trip messages</Heading>
+      <Heading size="section">Trip messages</Heading>
       <Muted>
         Only authorized trip participants can read this conversation.
       </Muted>
-      {resource.loading && !resource.data && <Muted>Loading messages…</Muted>}
+      {resource.loading && !resource.data && <LoadingSkeleton lines={2} />}
       {(resource.error || error) && (
         <Notice tone="error">{error || resource.error}</Notice>
       )}
       {resource.data?.length === 0 && (
         <Muted>No messages yet. Coordinate your pickup here.</Muted>
       )}
-      {resource.data?.map((message) => (
-        <Card key={message.id}>
+      {resource.data && resource.data.length > visible && <Button label="Earlier messages" variant="secondary" onPress={() => setVisible(count => count + 20)} />}
+      {resource.data?.slice(-visible).map((message) => (
+        <View key={message.id} style={{ padding: 12, gap: 6, borderRadius: 10, backgroundColor: message.sender_user_id === session?.user.id ? theme.subtle : theme.surface, borderWidth: 1, borderColor: theme.border }}>
           <Muted>
             {message.sender_user_id === session?.user.id
               ? "You"
               : "Trip participant"}{" "}
             · {dateTime(message.created_at)}
           </Muted>
-          <Text selectable>{message.body}</Text>
-        </Card>
+          <Text selectable style={{ color: theme.text, fontSize: 16, lineHeight: 23 }}>{message.body}</Text>
+        </View>
       ))}
       <Field
         label="Message"

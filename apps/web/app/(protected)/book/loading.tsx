@@ -1,3 +1,2 @@
-export default function BookLoading() {
-  return <div className="loading-state" role="status"><span className="spinner" aria-hidden="true" /><p>Preparing secure booking…</p></div>;
-}
+import { LoadingSkeleton } from '@/components/ui';
+export default function Loading() { return <LoadingSkeleton label="Preparing your booking…" />; }

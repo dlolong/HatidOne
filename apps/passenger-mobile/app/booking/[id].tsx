@@ -457,8 +457,8 @@ export default function BookingDetail() {
               <Card>
                 <Heading size="section">Cancel this booking?</Heading>
                 <Muted>
-                  You’ll lose your current driver assignment. You can book
-                  another ride whenever you’re ready.
+                  {data.driver ? 'Your driver assignment will be released. ' : 'Your ride request will be cancelled. '}
+                  You can book another ride whenever you’re ready.
                 </Muted>
                 <Button
                   label="Confirm cancellation"

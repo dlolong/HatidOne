@@ -80,3 +80,7 @@ npm run backend:stop
 ```
 
 Before any hosted schema deployment, reconcile the repository's two historical `0004` migration versions against that project's actual migration history. Back up data and apply new migrations in order. No sprint command performs a remote push, repairs hosted history, or sets hosted demo flags.
+
+## Mobile UI and simulator workflow
+
+Run `npm run mobile:doctor` before a native build and `npm run mobile:check` for both app checks. Use `npm run mobile:passenger` and `npm run mobile:driver` after installing their separate development clients. For browser-only previews, use `npm --workspace apps/passenger-mobile run web` and `npm --workspace apps/driver-mobile run web`. See [MOBILE_SIMULATOR_GUIDE.md](MOBILE_SIMULATOR_GUIDE.md) for exact iOS/Android build, GPS and localhost commands; [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md) defines the shared UI conventions.

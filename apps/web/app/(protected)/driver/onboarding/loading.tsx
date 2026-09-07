@@ -1,8 +1,2 @@
-export default function OnboardingLoading() {
-  return (
-    <div className="loading-state" role="status">
-      <span className="spinner" aria-hidden="true" />
-      <p>Loading onboarding details…</p>
-    </div>
-  );
-}
+import { LoadingSkeleton } from '@/components/ui';
+export default function Loading() { return <LoadingSkeleton label="Loading your saved application…" />; }
