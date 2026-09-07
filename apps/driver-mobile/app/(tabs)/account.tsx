@@ -250,7 +250,7 @@ export default function AccountScreen() {
             accessibilityLabel="Enable Going Home"
             value={enabled}
             onValueChange={setEnabled}
-            trackColor={{ true: theme.primary, false: theme.border }}
+            thumbColor={theme.surface} trackColor={{ true: theme.primary, false: theme.border }}
           />
         </View>
         <Field

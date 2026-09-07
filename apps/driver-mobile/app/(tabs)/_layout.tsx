@@ -13,9 +13,9 @@ export default function TabLayout() {
     tabBarLabelStyle: { fontSize: 12, fontWeight: "500" },
     tabBarIcon: ({ color, size }) => <Ionicons accessible={false} name={icons[route.name as keyof typeof icons]} color={color} size={size} />,
   })}>
-    <Tabs.Screen name="index" options={{ title: "Jobs" }} />
-    <Tabs.Screen name="trips" options={{ title: "Trips" }} />
-    <Tabs.Screen name="earnings" options={{ title: "Earnings" }} />
-    <Tabs.Screen name="account" options={{ title: "Account" }} />
+    <Tabs.Screen name="index" options={{ title: "Jobs", tabBarAccessibilityLabel: "Jobs" }} />
+    <Tabs.Screen name="trips" options={{ title: "Trips", tabBarAccessibilityLabel: "Trips" }} />
+    <Tabs.Screen name="earnings" options={{ title: "Earnings", tabBarAccessibilityLabel: "Earnings" }} />
+    <Tabs.Screen name="account" options={{ title: "Account", tabBarAccessibilityLabel: "Account" }} />
   </Tabs>;
 }

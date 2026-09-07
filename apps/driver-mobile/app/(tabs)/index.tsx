@@ -98,7 +98,7 @@ export default function JobsScreen() {
             <Text style={{ color: theme.text, fontSize: 18, fontWeight: "600" }}>{active ? "Busy · on a trip" : data?.driver?.online ? "You’re available" : "You’re offline"}</Text>
             <Muted>{data?.driver?.online ? "Ready for eligible jobs nearby." : "Go available to accept a job."}</Muted>
           </View>
-          <Switch accessibilityLabel="Available for jobs" value={Boolean(data?.driver?.online)} disabled={busy || !data?.driver || data.driver.verification_status !== "verified"} onValueChange={() => void toggleAvailability()} trackColor={{ true: theme.primary, false: theme.border }} />
+          <Switch accessibilityLabel="Available for jobs" value={Boolean(data?.driver?.online)} disabled={busy || !data?.driver || data.driver.verification_status !== "verified"} onValueChange={() => void toggleAvailability()} thumbColor={theme.surface} trackColor={{ true: theme.primary, false: theme.border }} />
         </View>
         {data?.driver?.verification_status !== "verified" && <StatusPill label={label(data?.driver?.verification_status ?? "Application needed")} tone={statusTone(data?.driver?.verification_status ?? "pending")} />}
         <Button label={data?.preferences.going_home_enabled ? `Going Home · ${data.preferences.home_address ?? "On"}` : "Going Home · find trips your way"} variant="secondary" onPress={() => router.push({ pathname: "/(tabs)/account", params: { section: "Going Home" } })} />
