@@ -1,22 +1,255 @@
-import type { ReactNode } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import type { ReactNode } from "react";
+import {
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+  type TextInputProps,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-export const theme = { background: '#f5f6f7', surface: '#ffffff', text: '#17232b', muted: '#61717b', primary: '#126653', border: '#dce3e4', danger: '#ae302f' };
-export function Screen({ children, refreshing = false, onRefresh }: { children: ReactNode; refreshing?: boolean; onRefresh?: () => void }) {
-  return <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}><KeyboardAvoidingView style={styles.safe} behavior={Platform.OS === 'ios' ? 'padding' : undefined}><ScrollView contentContainerStyle={styles.screen} keyboardShouldPersistTaps="handled" refreshControl={onRefresh ? <RefreshControl refreshing={refreshing} onRefresh={onRefresh} /> : undefined}>{children}</ScrollView></KeyboardAvoidingView></SafeAreaView>;
+export const theme = {
+  background: "#f5f6f7",
+  surface: "#ffffff",
+  text: "#17232b",
+  muted: "#61717b",
+  primary: "#126653",
+  border: "#dce3e4",
+  danger: "#ae302f",
+};
+export function Screen({
+  children,
+  refreshing = false,
+  onRefresh,
+}: {
+  children: ReactNode;
+  refreshing?: boolean;
+  onRefresh?: () => void;
+}) {
+  return (
+    <SafeAreaView style={styles.safe} edges={["top", "left", "right"]}>
+      <KeyboardAvoidingView
+        style={styles.safe}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      >
+        <ScrollView
+          contentContainerStyle={styles.screen}
+          keyboardShouldPersistTaps="handled"
+          refreshControl={
+            onRefresh ? (
+              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+            ) : undefined
+          }
+        >
+          {children}
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
+  );
 }
-export function Card({ children }: { children: ReactNode }) { return <View style={styles.card}>{children}</View>; }
-export function Heading({ children }: { children: ReactNode }) { return <Text accessibilityRole="header" style={styles.heading}>{children}</Text>; }
-export function Muted({ children }: { children: ReactNode }) { return <Text style={styles.muted}>{children}</Text>; }
-export function Row({ children }: { children: ReactNode }) { return <View style={styles.row}>{children}</View>; }
-export function Notice({ children, tone = 'info' }: { children: ReactNode; tone?: 'error' | 'success' | 'info' }) { return <View style={[styles.notice, tone === 'error' && styles.errorNotice]}><Text accessibilityRole="alert" style={{ color: tone === 'error' ? theme.danger : theme.primary, lineHeight: 21 }}>{children}</Text></View>; }
-export function Button({ label, onPress, disabled = false, loading = false, variant = 'primary' }: { label: string; onPress: () => void; disabled?: boolean; loading?: boolean; variant?: 'primary' | 'secondary' | 'danger' }) {
-  const secondary = variant === 'secondary';
-  return <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled: disabled || loading, busy: loading }} disabled={disabled || loading} onPress={onPress} style={({ pressed }) => [styles.button, { backgroundColor: secondary ? '#eaf0ee' : variant === 'danger' ? theme.danger : theme.primary, opacity: disabled || loading ? 0.5 : pressed ? 0.8 : 1 }]}>{loading ? <ActivityIndicator color={secondary ? theme.primary : '#fff'} /> : <Text style={{ color: secondary ? theme.primary : '#fff', fontWeight: '600', fontSize: 16 }}>{label}</Text>}</Pressable>;
+export function Card({ children }: { children: ReactNode }) {
+  return <View style={styles.card}>{children}</View>;
 }
-export function Field({ label, style, ...props }: TextInputProps & { label: string }) { return <View style={styles.field}><Text style={styles.label}>{label}</Text><TextInput accessibilityLabel={label} placeholderTextColor={theme.muted} {...props} style={[styles.input, style]} /></View>; }
-export function Chip({ label, selected = false, onPress }: { label: string; selected?: boolean; onPress?: () => void }) { return <Pressable accessibilityRole={onPress ? 'button' : 'text'} accessibilityState={{ selected }} onPress={onPress} disabled={!onPress} style={[styles.chip, selected && styles.selected]}><Text style={{ color: selected ? '#fff' : theme.text, fontSize: 14 }}>{label}</Text></Pressable>; }
-export function money(value: number | string | null) { return value === null ? 'Not available' : new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(Number(value)); }
-export function dateTime(iso: string | null) { return iso ? new Date(iso).toLocaleString('en-PH', { dateStyle: 'medium', timeStyle: 'short' }) : 'Unscheduled'; }
-const styles = StyleSheet.create({ safe: { flex: 1, backgroundColor: theme.background }, screen: { flexGrow: 1, padding: 20, paddingBottom: 36, gap: 16, width: '100%', maxWidth: 740, alignSelf: 'center' }, card: { backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.border, padding: 18, borderRadius: 16, gap: 12 }, heading: { color: theme.text, fontSize: 25, lineHeight: 32, fontWeight: '600' }, muted: { color: theme.muted, fontSize: 15, lineHeight: 22 }, row: { flexDirection: 'row', gap: 8, flexWrap: 'wrap', alignItems: 'center' }, notice: { backgroundColor: '#eaf3ef', borderRadius: 10, padding: 14 }, errorNotice: { backgroundColor: '#fff0ed' }, button: { minHeight: 50, padding: 14, borderRadius: 12, alignItems: 'center', justifyContent: 'center' }, field: { gap: 7 }, label: { fontSize: 14, color: theme.text, fontWeight: '500' }, input: { minHeight: 50, paddingHorizontal: 13, paddingVertical: 12, borderWidth: 1, borderColor: theme.border, backgroundColor: '#fff', borderRadius: 10, color: theme.text, fontSize: 16 }, chip: { minHeight: 46, justifyContent: 'center', paddingHorizontal: 14, borderRadius: 24, backgroundColor: '#eaf0ee' }, selected: { backgroundColor: theme.primary } });
+export function Heading({ children }: { children: ReactNode }) {
+  return (
+    <Text accessibilityRole="header" style={styles.heading}>
+      {children}
+    </Text>
+  );
+}
+export function Muted({ children }: { children: ReactNode }) {
+  return <Text style={styles.muted}>{children}</Text>;
+}
+export function Row({ children }: { children: ReactNode }) {
+  return <View style={styles.row}>{children}</View>;
+}
+export function Notice({
+  children,
+  tone = "info",
+}: {
+  children: ReactNode;
+  tone?: "error" | "success" | "info";
+}) {
+  return (
+    <View style={[styles.notice, tone === "error" && styles.errorNotice]}>
+      <Text
+        accessibilityRole="alert"
+        style={{
+          color: tone === "error" ? theme.danger : theme.primary,
+          lineHeight: 21,
+        }}
+      >
+        {children}
+      </Text>
+    </View>
+  );
+}
+export function Button({
+  label,
+  onPress,
+  disabled = false,
+  loading = false,
+  variant = "primary",
+}: {
+  label: string;
+  onPress: () => void;
+  disabled?: boolean;
+  loading?: boolean;
+  variant?: "primary" | "secondary" | "danger";
+}) {
+  const secondary = variant === "secondary";
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ disabled: disabled || loading, busy: loading }}
+      disabled={disabled || loading}
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.button,
+        {
+          backgroundColor: secondary
+            ? "#eaf0ee"
+            : variant === "danger"
+              ? theme.danger
+              : theme.primary,
+          opacity: disabled || loading ? 0.5 : pressed ? 0.8 : 1,
+        },
+      ]}
+    >
+      {loading ? (
+        <ActivityIndicator color={secondary ? theme.primary : "#fff"} />
+      ) : (
+        <Text
+          style={{
+            color: secondary ? theme.primary : "#fff",
+            fontWeight: "600",
+            fontSize: 16,
+          }}
+        >
+          {label}
+        </Text>
+      )}
+    </Pressable>
+  );
+}
+export function Field({
+  label,
+  style,
+  ...props
+}: TextInputProps & { label: string }) {
+  return (
+    <View style={styles.field}>
+      <Text style={styles.label}>{label}</Text>
+      <TextInput
+        accessibilityLabel={label}
+        placeholderTextColor={theme.muted}
+        {...props}
+        style={[styles.input, style]}
+      />
+    </View>
+  );
+}
+export function Chip({
+  label,
+  selected = false,
+  onPress,
+}: {
+  label: string;
+  selected?: boolean;
+  onPress?: () => void;
+}) {
+  return (
+    <Pressable
+      accessibilityRole={onPress ? "button" : "text"}
+      accessibilityState={{ selected }}
+      onPress={onPress}
+      disabled={!onPress}
+      style={[styles.chip, selected && styles.selected]}
+    >
+      <Text style={{ color: selected ? "#fff" : theme.text, fontSize: 14 }}>
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+export function money(value: number | string | null) {
+  return value === null
+    ? "Not available"
+    : new Intl.NumberFormat("en-PH", {
+        style: "currency",
+        currency: "PHP",
+      }).format(Number(value));
+}
+export function dateTime(iso: string | null) {
+  return iso
+    ? new Date(iso).toLocaleString("en-PH", {
+        dateStyle: "medium",
+        timeStyle: "short",
+      })
+    : "Unscheduled";
+}
+const styles = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: theme.background },
+  screen: {
+    flexGrow: 1,
+    padding: 20,
+    paddingBottom: 36,
+    gap: 16,
+    width: "100%",
+    maxWidth: 740,
+    alignSelf: "center",
+  },
+  card: {
+    backgroundColor: theme.surface,
+    borderWidth: 1,
+    borderColor: theme.border,
+    padding: 18,
+    borderRadius: 16,
+    gap: 12,
+  },
+  heading: {
+    color: theme.text,
+    fontSize: 25,
+    lineHeight: 32,
+    fontWeight: "600",
+  },
+  muted: { color: theme.muted, fontSize: 15, lineHeight: 22 },
+  row: { flexDirection: "row", gap: 8, flexWrap: "wrap", alignItems: "center" },
+  notice: { backgroundColor: "#eaf3ef", borderRadius: 10, padding: 14 },
+  errorNotice: { backgroundColor: "#fff0ed" },
+  button: {
+    minHeight: 50,
+    padding: 14,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  field: { gap: 7 },
+  label: { fontSize: 14, color: theme.text, fontWeight: "500" },
+  input: {
+    minHeight: 50,
+    paddingHorizontal: 13,
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: theme.border,
+    backgroundColor: "#fff",
+    borderRadius: 10,
+    color: theme.text,
+    fontSize: 16,
+  },
+  chip: {
+    minHeight: 46,
+    justifyContent: "center",
+    paddingHorizontal: 14,
+    borderRadius: 24,
+    backgroundColor: "#eaf0ee",
+  },
+  selected: { backgroundColor: theme.primary },
+});
