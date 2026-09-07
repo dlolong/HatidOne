@@ -11,6 +11,8 @@ npm run demo:env
 
 Docker must be running. Ports 55320–55324 are reserved for this project. On macOS the runner builds a cached Linux CLI image from `scripts/Dockerfile.cli` (Node24 and Docker CLI), avoiding a native CLI ICU incompatibility on older macOS. Set `HATIDONE_DOCKER_CLI=false` to use a compatible native CLI. First start may download container images. The `hatidone-cli-cache` volume caches CLI packages.
 
+The default stack excludes optional Studio, its metadata API, image transformations, and Edge Runtime. Auth, database, REST, Storage, and Realtime remain enabled. To use Studio at `http://localhost:55323`, run `npm run backend:stop` followed by `HATIDONE_STUDIO=true npm run backend:start`. Running several Supabase projects in a shared 3 GB Docker VM can cause startup health checks to time out; stop unused projects yourself or increase Docker memory if needed.
+
 The runner copies the repository config/seed and ordered migrations to `.local-backend/supabase`; duplicate historical `0004` versions receive unique local staging numbers. The tracked migrations are not renamed. This staging directory must never be used for remote deployment or migration repair.
 
 `demo:env` reads local CLI status internally and writes only public URL/anon key plus explicit demo flags. Existing env files are kept. It never copies the service-role key. For a real device, edit both mobile `.env` URLs to your computer’s LAN IP (`http://YOUR_LAN_IP:55321`) and the driver's `EXPO_PUBLIC_WEB_URL` to port 3100. Keep phone and computer on the same network.

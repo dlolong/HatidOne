@@ -22,7 +22,12 @@ if (existsSync(join(root, 'supabase', 'tests'))) cpSync(join(root, 'supabase', '
 const args = action === 'reset' ? ['db', 'reset', '--local'] : action === 'test' ? ['test', 'db']
   : action === 'seed' ? ['db', 'reset', '--local'] : [action];
 if (action === 'seed') console.log('Seed recreates ONLY this local demo backend. Existing local demo records will be reset.');
-if(action==='start')args.push('--exclude','imgproxy,edge-runtime');
+if (action === 'start') {
+  // Studio and its metadata API are optional; keep the default stack smaller on shared Docker VMs.
+  const excluded = ['imgproxy', 'edge-runtime'];
+  if (process.env.HATIDONE_STUDIO !== 'true') excluded.push('studio', 'postgres-meta');
+  args.push('--exclude', excluded.join(','));
+}
 if(action==='status' && process.argv.includes('--json'))args.push('--output','json');
 const cliArgs = ['--yes', 'supabase@2.116.0', '--workdir', stage, ...args];
 // The Linux CLI also supports older macOS hosts whose system ICU cannot run the current native CLI.
