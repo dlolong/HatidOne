@@ -10,6 +10,20 @@ begin
  raise exception 'FAIL: % (operation succeeded)',p_label;
 end $$;
 select pg_temp.assert_true((select driver_commission_percent=0 from public.app_config),'commission defaults zero');
+select set_config('test.duration',(select duration_seconds::text from public.placeholder_scheduled_fare(14.55,121.05,13.76,121.05,'sedan')),true);
+update public.app_config set mock_route_speed_kph=60;
+select pg_temp.assert_true((select duration_seconds<current_setting('test.duration')::integer from public.placeholder_scheduled_fare(14.55,121.05,13.76,121.05,'sedan')),'route estimate consumes configured speed');
+update public.app_config set mock_route_speed_kph=30;
+select set_config('test.weights',(select matching_weights::text from public.app_config),true);
+update public.app_config set matching_weights='{"distance":0,"preferences":0,"reliability":0,"going_home":0,"return_trip":0,"idle":0}';
+select pg_temp.assert_true(public.driver_matching_score('20000000-0000-4000-8000-000000000002','40000000-0000-4000-8000-000000000004',25000)=0,'server matching consumes zeroed weights');
+update public.app_config set matching_weights=matching_weights||'{"going_home":100}';
+select pg_temp.assert_true(public.driver_matching_score('20000000-0000-4000-8000-000000000002','40000000-0000-4000-8000-000000000004',25000)=100,'server Going Home score consumes configured weight');
+update public.app_config set matching_weights=matching_weights||'{"going_home":0,"reliability":100}';
+select pg_temp.assert_true(public.driver_matching_score('20000000-0000-4000-8000-000000000002','40000000-0000-4000-8000-000000000004',25000)=50,'small reliability sample remains neutral');
+update public.app_config set matching_weights=current_setting('test.weights')::jsonb;
+select pg_temp.assert_rejected($q$update public.app_config set matching_weights='{"distance":-10}'$q$,'app_config_matching_weights_valid','negative matching weights rejected');
+
 select pg_temp.assert_true(not has_column_privilege('authenticated','public.trips','trip_pin_hash','SELECT'),'PIN hash has no client column grant');
 select pg_temp.assert_true(not has_schema_privilege('authenticated','private','USAGE'),'private PIN schema inaccessible');
 select pg_temp.assert_true(not exists(select 1 from pg_tables where schemaname='public' and tablename in ('profiles','ride_requests','driver_documents','vehicle_documents','trips','ride_messages','organizations','organization_members','organization_subscriptions','notifications','payments') and not rowsecurity),'critical tables enable RLS');
