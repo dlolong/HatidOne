@@ -11,8 +11,8 @@
     "lint": "npm run lint --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "npm --workspace apps/web test && npm --workspace packages/core test",
-    "dev:passenger": "npm --workspace apps/passenger-mobile start -- --port 8081",
-    "dev:driver": "npm --workspace apps/driver-mobile start -- --port 8082",
+    "dev:passenger": "npm run mobile:passenger",
+    "dev:driver": "npm run mobile:driver",
     "backend:start": "node scripts/backend.mjs start",
     "backend:stop": "node scripts/backend.mjs stop",
     "backend:status": "node scripts/backend.mjs status",
@@ -21,7 +21,20 @@
     "test:db": "sh supabase/tests/run-local.sh",
     "check:mobile": "npm exec --workspace apps/passenger-mobile -- expo install --check && npm exec --workspace apps/driver-mobile -- expo install --check",
     "demo:env": "node scripts/demo-env.mjs",
-    "test:http": "node scripts/test-http.mjs"
+    "test:http": "node scripts/test-http.mjs",
+    "mobile:passenger": "npm --workspace apps/passenger-mobile start",
+    "mobile:passenger:ios": "npm --workspace apps/passenger-mobile run ios",
+    "mobile:passenger:android": "npm --workspace apps/passenger-mobile run android",
+    "mobile:driver": "npm --workspace apps/driver-mobile start",
+    "mobile:driver:ios": "npm --workspace apps/driver-mobile run ios",
+    "mobile:driver:android": "npm --workspace apps/driver-mobile run android",
+    "mobile:doctor": "node scripts/mobile-doctor.mjs",
+    "mobile:android:connect": "node scripts/mobile-android-connect.mjs",
+    "mobile:check": "npm --workspace apps/passenger-mobile run typecheck && npm --workspace apps/passenger-mobile run lint && npm --workspace apps/driver-mobile run typecheck && npm --workspace apps/driver-mobile run lint && npm run check:mobile",
+    "mobile:passenger:ios:build": "npm --workspace apps/passenger-mobile run ios:build",
+    "mobile:passenger:android:build": "npm --workspace apps/passenger-mobile run android:build",
+    "mobile:driver:ios:build": "npm --workspace apps/driver-mobile run ios:build",
+    "mobile:driver:android:build": "npm --workspace apps/driver-mobile run android:build"
   },
   "engines": {
     "node": ">=22.13.0 <23 || >=24"

@@ -11,18 +11,36 @@
       "supportsTablet": true,
       "bundleIdentifier": "ph.hatidone.passenger"
     },
-    "android": { "package": "ph.hatidone.passenger" },
-    "web": { "bundler": "metro", "output": "single" },
+    "android": {
+      "package": "ph.hatidone.passenger"
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single"
+    },
     "plugins": [
       "expo-router",
       "expo-secure-store",
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Use your location to set the pickup point for your ride."
+          "locationWhenInUsePermission": "Use your location to set the pickup point for your ride.",
+          "isIosBackgroundLocationEnabled": false,
+          "isAndroidBackgroundLocationEnabled": false,
+          "isAndroidForegroundServiceEnabled": false,
+          "locationAlwaysAndWhenInUsePermission": false,
+          "locationAlwaysPermission": false
+        }
+      ],
+      [
+        "expo-dev-client",
+        {
+          "launchMode": "launcher"
         }
       ]
     ],
-    "experiments": { "typedRoutes": true }
+    "experiments": {
+      "typedRoutes": true
+    }
   }
 }
