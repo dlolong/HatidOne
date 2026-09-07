@@ -13,7 +13,7 @@ This is a substantially expanded **local pilot candidate**, not an assertion of 
 - Domain: centralized configuration and plans, immutable fare snapshots, authoritative state transitions, private PIN storage and retry lockout, audited review/assignment/payment/subscription actions, participant messaging, notifications, referrals, generic organization memberships and saved locations.
 - Web: map-free booking with server preview and partner intent, assigned driver/PIN/chat/rebooking/live updates, pending driver enrollment, admin document review/operations/config/subscriptions/safety/backups/audit; fleet resources and scoped manual dispatch; partner guest requests/referral projection; corporate members/employee requests/monthly planning summaries.
 - Growth: `/drivers`, `/fleets`, `/partners/resorts`, `/business`, three configured corridor pages, manually reviewed referral events and QR-compatible booking URLs.
-- Local operation: isolated Supabase stack, fictional seed accounts, public-env generation, disposable database security tests, HTTP smoke script, runbook and ten demo scenarios. Web uses dedicated port 3100; unrelated applications and containers were preserved.
+- Local operation: isolated Supabase stack, fictional seed accounts, public-env generation, disposable database security tests, HTTP smoke script, runbook and ten demo scenarios. Web uses dedicated port 3003; unrelated applications and containers were preserved.
 
 ## 3. Partially completed / deliberately limited
 
@@ -74,7 +74,7 @@ The disposable SQL harness uses minimal Auth/Storage fixtures; the separate HTTP
 
 ## 9. Web build result
 
-Next.js production build passes, including all new protected routes and three statically generated service corridors. Public pages render without backend credentials; protected pages provide setup guidance. Dedicated local web port is 3100 to avoid the existing unrelated service on 3000.
+Next.js production build passes, including all new protected routes and three statically generated service corridors. Public pages render without backend credentials; protected pages provide setup guidance. Dedicated local web port is 3003 to avoid the existing unrelated service on 3000.
 
 ## 10. Passenger mobile result
 
@@ -97,7 +97,7 @@ npm run dev:passenger
 npm run dev:driver
 ```
 
-Open `http://localhost:3100`. API: `http://127.0.0.1:55321`. Use `passenger@hatidone.test`, `driver@hatidone.test`, `admin@hatidone.test` (or fleet/partner/corporate), password `DEMO-ONLY-HatidOne!42`. Full steps: DEMO_SCENARIOS.md. `npm run test:http` adds clearly labeled local test records; `npm run demo:reset` restores the fixtures.
+Open `http://localhost:3003`. API: `http://127.0.0.1:55321`. Use `passenger@hatidone.test`, `driver@hatidone.test`, `admin@hatidone.test` (or fleet/partner/corporate), password `DEMO-ONLY-HatidOne!42`. Full steps: DEMO_SCENARIOS.md. `npm run test:http` adds clearly labeled local test records; `npm run demo:reset` restores the fixtures.
 
 ## 13. Remaining manual setup
 

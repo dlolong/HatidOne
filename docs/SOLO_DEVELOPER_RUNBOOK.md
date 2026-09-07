@@ -15,13 +15,13 @@ The default stack excludes optional Studio, its metadata API, image transformati
 
 The runner copies the repository config/seed and ordered migrations to `.local-backend/supabase`; duplicate historical `0004` versions receive unique local staging numbers. The tracked migrations are not renamed. This staging directory must never be used for remote deployment or migration repair.
 
-`demo:env` reads local CLI status internally and writes only public URL/anon key plus explicit demo flags. Existing env files are kept. It never copies the service-role key. For a real device, edit both mobile `.env` URLs to your computer’s LAN IP (`http://YOUR_LAN_IP:55321`) and the driver's `EXPO_PUBLIC_WEB_URL` to port 3100. Keep phone and computer on the same network.
+`demo:env` reads local CLI status internally and writes only public URL/anon key plus explicit demo flags. Existing env files are kept. It never copies the service-role key. For a real device, edit both mobile `.env` URLs to your computer’s LAN IP (`http://YOUR_LAN_IP:55321`) and the driver's `EXPO_PUBLIC_WEB_URL` to port 3003. Keep phone and computer on the same network.
 
 ## Daily terminals
 
 ```sh
 npm run backend:start # reuses the isolated local stack
-npm run dev # web :3100
+npm run dev # web :3003
 npm run dev:passenger # Expo :8081
 npm run dev:driver # Expo :8082
 ```

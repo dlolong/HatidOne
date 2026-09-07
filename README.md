@@ -16,7 +16,7 @@ npm run dev:passenger
 npm run dev:driver
 ```
 
-Web: http://localhost:3100. Local Supabase API: http://127.0.0.1:55321. Studio is optional: stop the local backend, then run `HATIDONE_STUDIO=true npm run backend:start` to enable it at http://localhost:55323. The first local backend start applies migrations and fictional seed data. `npm run demo:reset` resets **only this local demo backend**. Public landing pages also work with no backend; protected pages explain setup.
+Web: http://localhost:3003. Local Supabase API: http://127.0.0.1:55321. Studio is optional: stop the local backend, then run `HATIDONE_STUDIO=true npm run backend:start` to enable it at http://localhost:55323. The first local backend start applies migrations and fictional seed data. `npm run demo:reset` resets **only this local demo backend**. Public landing pages also work with no backend; protected pages explain setup.
 
 Demo login: `passenger@hatidone.test`, `driver@hatidone.test`, `admin@hatidone.test`, `fleet@hatidone.test`, `partner@hatidone.test`, or `corporate@hatidone.test`. Shared local-only password: `DEMO-ONLY-HatidOne!42`.
 
