@@ -21,10 +21,11 @@ export default function Home() {
     () => getBookings(client, session?.user.id),
     [client, session?.user.id],
   );
+  const { reload } = resource;
   useFocusEffect(
     useCallback(() => {
-      void resource.reload();
-    }, [resource.reload]),
+      void reload();
+    }, [reload]),
   );
   const upcoming = resource.data
     ?.filter((b) => !terminalStatuses.has(b.status))
@@ -33,10 +34,7 @@ export default function Home() {
     )[0];
   const recent = resource.data?.find((b) => b.status === "trip_completed");
   return (
-    <Screen
-      refreshing={resource.loading}
-      onRefresh={() => void resource.reload()}
-    >
+    <Screen refreshing={resource.loading} onRefresh={() => void reload()}>
       <Muted>HATIDONE</Muted>
       <Heading>Hello, {profile?.first_name ?? "traveler"}.</Heading>
       {process.env.EXPO_PUBLIC_DEMO_MODE === "true" && (

@@ -31,6 +31,7 @@ export function RideChat({ rideRequestId }: { rideRequestId: string }) {
     if (read.error) throw new Error(read.error.message);
     return (result.data as Message[]).reverse();
   }, [client, rideRequestId]);
+  const { reload } = resource;
   useEffect(() => {
     if (!client) return;
     const channel = client
@@ -43,15 +44,15 @@ export function RideChat({ rideRequestId }: { rideRequestId: string }) {
           table: "ride_messages",
           filter: `ride_request_id=eq.${rideRequestId}`,
         },
-        () => void resource.reload(),
+        () => void reload(),
       )
       .subscribe();
-    const timer = setInterval(() => void resource.reload(), 15000);
+    const timer = setInterval(() => void reload(), 15000);
     return () => {
       clearInterval(timer);
       void client.removeChannel(channel);
     };
-  }, [client, rideRequestId, resource.reload]);
+  }, [client, rideRequestId, reload]);
   async function send() {
     if (!client || !body.trim() || sending) return;
     setSending(true);
@@ -68,7 +69,7 @@ export function RideChat({ rideRequestId }: { rideRequestId: string }) {
       if (result.error) throw new Error(result.error.message);
       pending.current = null;
       setBody("");
-      await resource.reload();
+      await reload();
     } catch (reason) {
       setError(
         reason instanceof Error

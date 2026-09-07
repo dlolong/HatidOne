@@ -19,10 +19,11 @@ export default function Activity() {
     () => getNotifications(client, session?.user.id),
     [client, session?.user.id],
   );
+  const { reload } = resource;
   useFocusEffect(
     useCallback(() => {
-      void resource.reload();
-    }, [resource.reload]),
+      void reload();
+    }, [reload]),
   );
   useEffect(() => {
     if (!client || !session) return;
@@ -36,15 +37,15 @@ export default function Activity() {
           table: "notifications",
           filter: `user_id=eq.${session.user.id}`,
         },
-        () => void resource.reload(),
+        () => void reload(),
       )
       .subscribe();
-    const timer = setInterval(() => void resource.reload(), 20000);
+    const timer = setInterval(() => void reload(), 20000);
     return () => {
       clearInterval(timer);
       void client.removeChannel(channel);
     };
-  }, [client, session?.user.id, resource.reload]);
+  }, [client, session, reload]);
   async function markRead(id: string) {
     if (!client) return;
     const result = await client.rpc("mark_notification_read", {
@@ -53,14 +54,11 @@ export default function Activity() {
     if (result.error) setError(result.error.message);
     else {
       setError("");
-      await resource.reload();
+      await reload();
     }
   }
   return (
-    <Screen
-      refreshing={resource.loading}
-      onRefresh={() => void resource.reload()}
-    >
+    <Screen refreshing={resource.loading} onRefresh={() => void reload()}>
       <Heading>Activity</Heading>
       <Muted>Your in-app trip updates. Pull down to refresh at any time.</Muted>
       {(error || resource.error) && (

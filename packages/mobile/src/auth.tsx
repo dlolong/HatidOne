@@ -148,16 +148,17 @@ export function AuthProvider({
       client.auth.stopAutoRefresh();
     };
   }, [client]);
+  const profileUserId = session?.user.id;
   useEffect(() => {
     let live = true;
     setProfile(null);
-    if (client && session)
+    if (client && profileUserId)
       client
         .from("profiles")
         .select(
           "id,first_name,last_name,email,phone,role,phone_verified,account_status",
         )
-        .eq("id", session.user.id)
+        .eq("id", profileUserId)
         .single()
         .then((result) => {
           if (live) {
@@ -168,7 +169,7 @@ export function AuthProvider({
     return () => {
       live = false;
     };
-  }, [client, session?.user.id]);
+  }, [client, profileUserId]);
   return (
     <AuthContext.Provider
       value={{

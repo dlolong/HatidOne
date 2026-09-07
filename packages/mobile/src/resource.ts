@@ -10,33 +10,48 @@ export function useResource<T>(loader: () => Promise<T>, deps: DependencyList) {
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const sequence = useRef(0);
+  const lifecycle = useRef<{ sequence: number; deps: DependencyList | null }>({
+    sequence: 0,
+    deps: null,
+  });
   const loaderRef = useRef(loader);
   loaderRef.current = loader;
   const reload = useCallback(async () => {
-    const request = ++sequence.current;
+    const request = ++lifecycle.current.sequence;
     setLoading(true);
     setError(null);
     try {
       const next = await loaderRef.current();
-      if (sequence.current === request) setData(next);
+      if (lifecycle.current.sequence === request) setData(next);
     } catch (reason) {
-      if (sequence.current === request)
+      if (lifecycle.current.sequence === request)
         setError(
           reason instanceof Error
             ? reason.message
             : "Unable to load. Please retry.",
         );
     } finally {
-      if (sequence.current === request) setLoading(false);
+      if (lifecycle.current.sequence === request) setLoading(false);
     }
   }, []);
   useEffect(() => {
-    setData(null);
-    void reload();
+    const previous = lifecycle.current.deps;
+    if (
+      !previous ||
+      previous.length !== deps.length ||
+      deps.some((value, index) => !Object.is(value, previous[index]))
+    ) {
+      lifecycle.current.deps = [...deps];
+      setData(null);
+      void reload();
+    }
+  }, [deps, reload]);
+  useEffect(() => {
+    const current = lifecycle.current;
     return () => {
-      sequence.current++;
+      current.sequence++;
+      current.deps = null;
     };
-  }, [...deps, reload]);
+  }, []);
   return { data, loading, error, reload };
 }

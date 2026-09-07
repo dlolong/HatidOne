@@ -154,7 +154,13 @@ export default function Book() {
         }),
       );
     }
-  }, []);
+  }, [
+    params.pickup_lat,
+    params.pickup_lng,
+    params.destination_lat,
+    params.destination_lng,
+    params.scheduled_at,
+  ]);
   function schedule() {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !/^\d{2}:\d{2}$/.test(time))
       throw new Error("Enter a date as YYYY-MM-DD and time as HH:MM.");

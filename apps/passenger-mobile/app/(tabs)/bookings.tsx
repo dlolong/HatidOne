@@ -20,10 +20,11 @@ export default function Bookings() {
     () => getBookings(client, session?.user.id),
     [client, session?.user.id],
   );
+  const { reload } = resource;
   useFocusEffect(
     useCallback(() => {
-      void resource.reload();
-    }, [resource.reload]),
+      void reload();
+    }, [reload]),
   );
   useEffect(() => {
     if (!client || !session) return;
@@ -37,15 +38,15 @@ export default function Bookings() {
           table: "ride_requests",
           filter: `passenger_id=eq.${session.user.id}`,
         },
-        () => void resource.reload(),
+        () => void reload(),
       )
       .subscribe();
-    const timer = setInterval(() => void resource.reload(), 20000);
+    const timer = setInterval(() => void reload(), 20000);
     return () => {
       clearInterval(timer);
       void client.removeChannel(channel);
     };
-  }, [client, session?.user.id, resource.reload]);
+  }, [client, session, reload]);
   const bookings = resource.data?.filter((b) =>
     filter === "upcoming"
       ? !terminalStatuses.has(b.status)
@@ -54,10 +55,7 @@ export default function Bookings() {
         : terminalStatuses.has(b.status) && b.status !== "trip_completed",
   );
   return (
-    <Screen
-      refreshing={resource.loading}
-      onRefresh={() => void resource.reload()}
-    >
+    <Screen refreshing={resource.loading} onRefresh={() => void reload()}>
       <Heading>Your bookings</Heading>
       <Row>
         {["upcoming", "completed", "cancelled"].map((item) => (

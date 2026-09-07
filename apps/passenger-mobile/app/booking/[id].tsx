@@ -99,6 +99,7 @@ export default function BookingDetail() {
       pin,
     };
   }, [client, id, session?.user.id]);
+  const { reload } = resource;
   useEffect(() => {
     if (!client) return;
     const channel = client
@@ -111,7 +112,7 @@ export default function BookingDetail() {
           table: "ride_requests",
           filter: `id=eq.${id}`,
         },
-        () => void resource.reload(),
+        () => void reload(),
       )
       .on(
         "postgres_changes",
@@ -121,15 +122,15 @@ export default function BookingDetail() {
           table: "ride_messages",
           filter: `ride_request_id=eq.${id}`,
         },
-        () => void resource.reload(),
+        () => void reload(),
       )
       .subscribe();
-    const timer = setInterval(() => void resource.reload(), 15000);
+    const timer = setInterval(() => void reload(), 15000);
     return () => {
       clearInterval(timer);
       void client.removeChannel(channel);
     };
-  }, [client, id, resource.reload]);
+  }, [client, id, reload]);
   async function cancel() {
     if (!client) return;
     setBusy(true);
@@ -141,7 +142,7 @@ export default function BookingDetail() {
     else {
       setConfirmCancel(false);
       setSuccess("Booking cancelled.");
-      await resource.reload();
+      await reload();
     }
     setBusy(false);
   }
@@ -166,8 +167,10 @@ export default function BookingDetail() {
   }
   async function share() {
     try {
+      const booking = resource.data?.booking;
+      if (!booking) return;
       await Share.share({
-        message: `I’m traveling with HatidOne. Booking reference: ${id.slice(0, 8)}. Private trip link: hatidone-passenger://booking/${id}\nSign-in and booking authorization are required to open this link. No live location or passenger PIN is included.`,
+        message: `My HatidOne trip: ${booking.pickup_address} → ${booking.dropoff_address}.\nPickup: ${dateTime(booking.scheduled_at)}. Status: ${statusLabel(booking.status)}.\nBooking reference: ${id.slice(0, 8)}. Private trip link: hatidone-passenger://booking/${id}\nSign-in and booking authorization are required to open this link. No live location or passenger PIN is included.`,
       });
     } catch (reason) {
       setError(
@@ -177,10 +180,7 @@ export default function BookingDetail() {
   }
   const data = resource.data;
   return (
-    <Screen
-      refreshing={resource.loading}
-      onRefresh={() => void resource.reload()}
-    >
+    <Screen refreshing={resource.loading} onRefresh={() => void reload()}>
       <Button
         label="Back to bookings"
         variant="secondary"
@@ -262,7 +262,7 @@ export default function BookingDetail() {
                 variant="secondary"
                 onPress={() => {
                   setShowChat(!showChat);
-                  if (showChat) void resource.reload();
+                  if (showChat) void reload();
                 }}
               />
             </Card>
@@ -285,13 +285,13 @@ export default function BookingDetail() {
             ))}
           </Card>
           <Button
-            label="Share private trip link"
+            label="Share trip summary"
             variant="secondary"
             onPress={() => void share()}
           />
           <Muted>
-            This link requires authorization to view the booking. It does not
-            provide public tracking.
+            Share your pickup, destination and schedule with a trusted contact.
+            The booking link requires authorization and does not provide public tracking.
           </Muted>
           {data.booking.status === "trip_completed" && (
             <Button
