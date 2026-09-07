@@ -13,7 +13,7 @@ export default function TripsScreen() {
       tab === "History"
         ? !ACTIVE_STATUSES.includes(item.ride.status)
         : ACTIVE_STATUSES.includes(item.ride.status) &&
-          dayGroup(item.ride.scheduled_at) === tab,
+          (item.ride.status !== "assigned" ? tab === "Today" : dayGroup(item.ride.scheduled_at) === tab),
     )
     .sort(
       (a, b) =>
@@ -21,7 +21,7 @@ export default function TripsScreen() {
         Date.parse(b.ride.scheduled_at ?? ""),
     );
   return (
-    <Screen refreshing={loading} onRefresh={() => void reload()}>
+    <Screen scrollKey={tab} refreshing={loading} onRefresh={() => void reload()}>
       <Muted>YOUR SCHEDULE</Muted>
       <Heading>Trips</Heading>
       <Feedback />
@@ -37,6 +37,7 @@ export default function TripsScreen() {
       </Row>
       {!loading && !assignments.length && (
         <Empty
+          action={<Button label="Find a job" variant="secondary" onPress={() => router.push("/(tabs)")} />}
           title={
             tab === "History"
               ? "No past trips yet"
@@ -50,16 +51,15 @@ export default function TripsScreen() {
       {assignments.map((item) => (
         <RideCard
           key={item.id}
+          compact
           ride={item.ride}
           badge={label(item.ride.status)}
         >
           <Muted>
-            Primary assignment · {label(item.assignment_type)} dispatch
+            {label(item.assignment_type)} assignment
           </Muted>
           <Muted>
-            {item.confirmed_at
-              ? "You have confirmed this pickup."
-              : "Pickup confirmation needed."}
+            {ACTIVE_STATUSES.includes(item.ride.status) ? item.confirmed_at ? "Pickup confirmed." : "Pickup confirmation needed." : ""}
           </Muted>
           <Button
             label="Open trip"

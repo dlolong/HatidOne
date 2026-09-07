@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useLocalSearchParams, router } from "expo-router";
 import { Linking, Switch, Text, View } from "react-native";
 import {
   Screen,
@@ -11,11 +12,14 @@ import {
   Field,
   Notice,
   useAuth,
+  StatusPill,
+  theme,
+  userError,
 } from "@hatidone/mobile";
 import { DEMO_LOCATIONS, validCoordinates } from "@hatidone/core";
 import { useDriver } from "../../src/driver-context";
 import { Feedback, Empty } from "../../src/components";
-import { label, localDateInput } from "../../src/format";
+import { label, localDateInput, statusTone } from "../../src/format";
 import type { Document, Preferences } from "../../src/data";
 function DocumentCard({ document }: { document: Document }) {
   const daysRemaining =
@@ -33,7 +37,8 @@ function DocumentCard({ document }: { document: Document }) {
       <Text style={{ fontSize: 17, fontWeight: "600" }}>
         {label(document.document_type)}
       </Text>
-      <Chip
+      <StatusPill
+        tone={expired ? "danger" : dueSoon ? "warning" : statusTone(document.verification_status)}
         label={
           expired
             ? "Expired · needs attention"
@@ -55,6 +60,11 @@ function DocumentCard({ document }: { document: Document }) {
 }
 export default function AccountScreen() {
   const { profile, signOut } = useAuth();
+  const params = useLocalSearchParams<{ section?: string }>();
+  const [section, setSection] = useState("Profile");
+  useEffect(() => {
+    if (["Profile", "Going Home", "Preferences", "Location", "Documents"].includes(params.section ?? "")) setSection(params.section!);
+  }, [params.section]);
   const {
     data,
     loading,
@@ -68,6 +78,7 @@ export default function AccountScreen() {
   const [areas, setAreas] = useState("");
   const [services, setServices] = useState<string[]>([]);
   const [enabled, setEnabled] = useState(false);
+  const [showCoordinates, setShowCoordinates] = useState(false);
   const [home, setHome] = useState("");
   const [latitude, setLatitude] = useState("");
   const [longitude, setLongitude] = useState("");
@@ -156,7 +167,7 @@ export default function AccountScreen() {
     const base = process.env.EXPO_PUBLIC_WEB_URL;
     if (!base) {
       setError(
-        "Set this app’s public web URL to open document onboarding, or visit /driver/onboarding on your HatidOne web app.",
+        "Document upload is temporarily unavailable in this app. Open your HatidOne web account to continue your application.",
       );
       return;
     }
@@ -167,7 +178,7 @@ export default function AccountScreen() {
       await Linking.openURL(url.toString());
     } catch {
       setError(
-        "The onboarding link could not open. Check your public web URL.",
+        "We couldn’t open document upload. Try again or open your HatidOne web account.",
       );
     }
   }
@@ -193,19 +204,18 @@ export default function AccountScreen() {
     if (saved) setManualLocation(point);
   }
   return (
-    <Screen refreshing={loading} onRefresh={() => void reload()}>
+    <Screen scrollKey={section} refreshing={loading} onRefresh={() => void reload()}>
       <Muted>DRIVER ACCOUNT</Muted>
       <Heading>{profile?.first_name ?? "Your account"}</Heading>
       <Feedback />
       {error && <Notice tone="error">{error}</Notice>}
-      <Card>
+      <Row>{["Profile", "Going Home", "Preferences", "Location", "Documents"].map((value) => <Chip key={value} label={value} selected={section === value} onPress={() => setSection(value)} />)}</Row>
+      {section === "Profile" && <><Card>
         <Muted>{profile?.email}</Muted>
         <Muted>{profile?.phone ?? "Phone not provided"}</Muted>
         <Row>
-          <Chip label={profile?.account_status ?? "Pending"} />
-          <Chip
-            label={data?.driver?.verification_status ?? "Application needed"}
-          />
+          <StatusPill label={label(profile?.account_status ?? "pending")} tone={statusTone(profile?.account_status ?? "pending")} />
+          <StatusPill label={label(data?.driver?.verification_status ?? "Application needed")} tone={statusTone(data?.driver?.verification_status ?? "pending")} />
         </Row>
         {data?.driver && (
           <Muted>
@@ -220,11 +230,13 @@ export default function AccountScreen() {
           onPress={() => void openOnboarding()}
         />
       </Card>
-      <Card>
-        <Heading>Going Home</Heading>
+      <Button label="Going Home · find trips your way" variant="secondary" onPress={() => setSection("Going Home")} />
+      <Button label="Review vehicle and documents" variant="secondary" onPress={() => setSection("Documents")} />
+      </>}
+      {section === "Going Home" && <Card>
+        <Heading size="section">Going Home</Heading>
         <Muted>
-          Tell us where you want to end your day. Compatible offers will appear
-          under “Trips going your way”.
+          Find trips going your way. Set your destination and the time you want to leave.
         </Muted>
         <View
           style={{
@@ -238,11 +250,11 @@ export default function AccountScreen() {
             accessibilityLabel="Enable Going Home"
             value={enabled}
             onValueChange={setEnabled}
-            trackColor={{ true: "#126653" }}
+            trackColor={{ true: theme.primary, false: theme.border }}
           />
         </View>
         <Field
-          label="Home or end-of-day destination"
+          label="Destination (required when enabled)"
           value={home}
           onChangeText={setHome}
           placeholder="Address or operating base"
@@ -256,6 +268,7 @@ export default function AccountScreen() {
             <Chip
               key={place.id}
               label={place.label}
+              selected={home === place.label}
               onPress={() => {
                 setHome(place.label);
                 setLatitude(String(place.coordinates?.latitude ?? ""));
@@ -264,7 +277,8 @@ export default function AccountScreen() {
             />
           ))}
         </Row>
-        <Field
+        <Button label={showCoordinates ? "Hide coordinates" : "Use custom coordinates"} variant="secondary" onPress={() => setShowCoordinates(!showCoordinates)} />
+        {showCoordinates && <><Field
           label="Destination latitude"
           value={latitude}
           onChangeText={setLatitude}
@@ -276,20 +290,18 @@ export default function AccountScreen() {
           onChangeText={setLongitude}
           keyboardType="numbers-and-punctuation"
         />
-        <Field
-          label="Departure in local time (YYYY-MM-DDTHH:mm)"
-          value={departure}
-          onChangeText={setDeparture}
-          autoCapitalize="none"
-          placeholder="2026-09-07T17:00"
-        />
+        </>}
+        <Field label="Departure date" value={departure.split("T")[0] ?? ""} onChangeText={(value) => setDeparture(`${value}T${departure.split("T")[1] ?? "17:00"}`)} autoCapitalize="none" keyboardType="numbers-and-punctuation" placeholder="YYYY-MM-DD" hint="Use your local date." />
+        <Field label="Departure time" value={departure.split("T")[1] ?? ""} onChangeText={(value) => setDeparture(`${departure.split("T")[0] ?? ""}T${value}`)} keyboardType="numbers-and-punctuation" placeholder="17:00" hint="24-hour local time, for example 17:00 for 5 PM." />
         <Muted>
           Return ride suggestions also consider where and when your accepted
           outbound trip is expected to end.
         </Muted>
-      </Card>
-      <Card>
-        <Heading>Job preferences</Heading>
+        <Button label="Save Going Home" loading={busy} disabled={!data?.driver} onPress={() => void save()} />
+        <Button label="View matching jobs" variant="secondary" onPress={() => router.push({ pathname: "/(tabs)", params: { filter: "Going Home" } })} />
+      </Card>}
+      {section === "Preferences" && <Card>
+        <Heading size="section">Job preferences</Heading>
         <Field
           label="Preferred areas, separated by commas"
           value={areas}
@@ -322,18 +334,17 @@ export default function AccountScreen() {
           schedule eligibility are checked separately.
         </Muted>
         <Button
-          label="Save preferences and Going Home"
+          label="Save job preferences"
           loading={busy}
           disabled={!data?.driver}
           onPress={() => void save()}
         />
-      </Card>
-      <Card>
-        <Heading>Location and availability</Heading>
+      </Card>}
+      {section === "Location" && <Card>
+        <Heading size="section">Location and availability</Heading>
         <Muted>
           Foreground GPS works while the app is open. If GPS is unavailable,
-          enter your actual position to become available. No map key is
-          required.
+          enter your actual position to become available.
         </Muted>
         <Button
           label="Use current GPS position"
@@ -372,8 +383,9 @@ export default function AccountScreen() {
             }
           />
         )}
-      </Card>
-      <Heading>Vehicle</Heading>
+      </Card>}
+      {section === "Documents" && data && <>
+      <Heading size="section">Vehicle</Heading>
       {data?.vehicle ? (
         <Card>
           <Muted>
@@ -390,7 +402,7 @@ export default function AccountScreen() {
           Complete your application on the web to register a vehicle.
         </Empty>
       )}
-      <Heading>Driver documents</Heading>
+      <Heading size="section">Driver documents</Heading>
       {data?.documents.map((document) => (
         <DocumentCard key={document.document_type} document={document} />
       ))}
@@ -399,25 +411,27 @@ export default function AccountScreen() {
           No documents recorded. Open onboarding to upload your documents.
         </Muted>
       )}
-      <Heading>Vehicle documents</Heading>
+      <Heading size="section">Vehicle documents</Heading>
       {data?.vehicleDocuments.map((document) => (
         <DocumentCard key={document.document_type} document={document} />
       ))}
       {!data?.vehicleDocuments.length && (
         <Muted>No vehicle documents recorded.</Muted>
       )}
-      <Button
+      <Button label="Upload or update documents" onPress={() => void openOnboarding()} />
+      </>}
+      {section === "Profile" && <Button
         label="Sign out"
         variant="secondary"
         onPress={() => {
           setError(null);
           void signOut().catch((reason) =>
             setError(
-              reason instanceof Error ? reason.message : "Unable to sign out.",
+              userError(reason, "Unable to sign out. Please try again."),
             ),
           );
         }}
-      />
+      />}
     </Screen>
   );
 }

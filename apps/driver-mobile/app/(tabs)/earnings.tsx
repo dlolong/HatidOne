@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { Text } from "react-native";
 import { router } from "expo-router";
 import {
   Screen,
@@ -8,11 +9,11 @@ import {
   Row,
   Chip,
   Button,
-  Notice,
+  theme,
 } from "@hatidone/mobile";
 import { Feedback, MoneyLine, Empty } from "../../src/components";
 import { useDriver } from "../../src/driver-context";
-import { schedule } from "../../src/format";
+import { schedule, peso } from "../../src/format";
 export default function EarningsScreen() {
   const { data, loading, reload } = useDriver();
   const [period, setPeriod] = useState("Today");
@@ -35,7 +36,7 @@ export default function EarningsScreen() {
       ? null
       : rows.reduce((sum, row) => sum + Number(row[field] ?? 0), 0);
   return (
-    <Screen refreshing={loading} onRefresh={() => void reload()}>
+    <Screen scrollKey={period} refreshing={loading} onRefresh={() => void reload()}>
       <Muted>TRANSPARENT EARNINGS</Muted>
       <Heading>Your earnings</Heading>
       <Feedback />
@@ -50,9 +51,9 @@ export default function EarningsScreen() {
         ))}
       </Row>
       <Card>
-        <Heading>
-          {rows.length} completed ride{rows.length === 1 ? "" : "s"}
-        </Heading>
+        <Muted>Estimated earnings · {period.toLowerCase()}</Muted>
+        <Text style={{ fontSize: 36, fontWeight: "600", color: theme.text }}>{peso(total("driver_earnings"))}</Text>
+        <Muted>{rows.length} completed trip{rows.length === 1 ? "" : "s"}</Muted>
         <MoneyLine label="Gross fare" value={total("gross_fare")} />
         <MoneyLine
           label="HatidOne commission"
@@ -64,17 +65,12 @@ export default function EarningsScreen() {
           strong
         />
         <Muted>
-          Other adjustments: no separate adjustments recorded. These figures are
-          trip earnings, not a payout balance. Tolls, taxes, discounts and
-          collection costs may need reconciliation.
+          No separate adjustments recorded. Tolls, taxes and collection costs may affect the final amount. This is not a payout balance.
         </Muted>
       </Card>
-      <Notice>
-        HatidOne’s default driver commission is 0%. Each trip shows the
-        commission saved by the server when it was assigned.
-      </Notice>
+
       {!loading && !rows.length && (
-        <Empty title="Your next trip starts here">
+        <Empty title="Your next trip starts here" action={<Button label="Find a job" onPress={() => router.push("/(tabs)")} />}>
           Complete a ride to see its fare and commission breakdown.
         </Empty>
       )}

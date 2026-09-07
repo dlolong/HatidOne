@@ -10,6 +10,8 @@ import {
   Button,
   Heading,
   Muted,
+  theme,
+  userError,
 } from "@hatidone/mobile";
 import { DriverProvider } from "../src/driver-context";
 function DriverRoot() {
@@ -21,9 +23,7 @@ function DriverRoot() {
       .signOut()
       .catch((reason) =>
         setSignOutError(
-          reason instanceof Error
-            ? reason.message
-            : "Unable to sign out. Please retry.",
+          userError(reason, "Unable to sign out. Please retry."),
         ),
       );
   };
@@ -47,7 +47,7 @@ function DriverRoot() {
       <Screen>
         <Notice tone="error">
           {signOutError ??
-            auth.error ??
+            (auth.error ? userError(auth.error) : null) ??
             "Loading your driver profile. If this continues, retry below."}
         </Notice>
         <Button
@@ -73,8 +73,8 @@ function DriverRoot() {
     <DriverProvider>
       <Stack
         screenOptions={{
-          headerStyle: { backgroundColor: "#f7faf9" },
-          headerTintColor: "#153e34",
+          headerStyle: { backgroundColor: theme.surface },
+          headerTintColor: theme.text,
           headerShadowVisible: false,
         }}
       >
