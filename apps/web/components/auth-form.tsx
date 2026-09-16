@@ -14,6 +14,8 @@ type AuthFormProps = {
   alternateLabel: string;
   error?: string;
   message?: string;
+  submitDisabled?: boolean;
+  afterForm?: ReactNode;
 };
 
 export function AuthForm(props: AuthFormProps) {
@@ -27,12 +29,13 @@ export function AuthForm(props: AuthFormProps) {
         {props.message ? <p className="notice notice-success" role="status">{props.message}</p> : null}
         <form action={props.action} className="form-stack" aria-describedby={props.error ? "auth-error" : undefined}>
           {props.children}
-          <SubmitButton pendingLabel={props.pendingLabel}>{props.submitLabel}</SubmitButton>
+          <SubmitButton disabled={props.submitDisabled} pendingLabel={props.pendingLabel}>{props.submitLabel}</SubmitButton>
         </form>
+        {props.afterForm}
         <p className="auth-alternate">
           {props.alternateText} <Link href={props.alternateHref}>{props.alternateLabel}</Link>
         </p>
-        <details className="auth-role-links"><summary>Driving or arranging business rides?</summary><Link href="/driver-application">Apply as a driver</Link><Link href="/organizations">Set up a fleet, hotel or corporate account</Link></details>
+        <div className="auth-role-links"><p>Want to drive with HatidOne? <Link href="/signup?intent=driver">Apply to drive</Link></p><details><summary>Arranging business rides?</summary><Link href="/organizations">Fleet, hotel or corporate accounts</Link></details></div>
       </section>
     </main>
   );

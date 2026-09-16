@@ -37,6 +37,8 @@ function DriverRoot() {
   if (!auth.session)
     return (
       <AuthScreen
+        webUrl={process.env.EXPO_PUBLIC_WEB_URL}
+        environment={process.env.EXPO_PUBLIC_APP_ENVIRONMENT}
         title="HatidOne Driver"
         subtitle="Scheduled jobs. Clear earnings. Trips going your way."
         allowSignUp={false}
@@ -70,7 +72,7 @@ function DriverRoot() {
       </Screen>
     );
   return (
-    <DriverProvider>
+    <DriverProvider key={auth.session.user.id}>
       <Stack
         screenOptions={{
           headerStyle: { backgroundColor: theme.surface },
@@ -87,6 +89,7 @@ function DriverRoot() {
 export default function RootLayout() {
   return (
     <AuthProvider
+      environment={process.env.EXPO_PUBLIC_APP_ENVIRONMENT}
       supabaseUrl={process.env.EXPO_PUBLIC_SUPABASE_URL}
       supabaseAnonKey={process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY}
     >

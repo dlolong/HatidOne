@@ -1,4 +1,7 @@
 import Link from "next/link";
+import { AdminSubscriptionForm } from "@/components/admin-subscription-form";
+import { NeedsAttention } from "@/components/needs-attention";
+import { releaseCapabilities, isIsolatedDemoEnvironment } from "@/lib/operations/capabilities";
 import { randomUUID } from "node:crypto";
 import { OperationsRideList } from "@/components/operations-ride-list";
 import { WorkspaceTabs } from "@/components/workspace-tabs";
@@ -15,10 +18,9 @@ import {
   type Organization,
 } from "@/lib/operations/data";
 import {
+  setReleaseControls,
   activateBackup,
-  manageSubscription,
   resolveSafety,
-  reviewDriver,
   setBackup,
   simulatePayment,
   updateConfiguration,
@@ -59,9 +61,8 @@ export default async function OperationsPage({
       .limit(100),
     client
       .from("driver_profiles")
-      .select("id,user_id,verification_status,online")
-      .order("created_at")
-      .limit(100),
+      .select("id", { count: "exact", head: true })
+      .eq("verification_status", "under_review"),
     client
       .from("organizations")
       .select("id,kind,name,owner_user_id,partner_type")
@@ -133,6 +134,7 @@ export default async function OperationsPage({
             label: "Overview",
             content: (
               <>
+                <NeedsAttention />
                 <DashboardCard title="Booking exceptions">
                   <p>
                     {
@@ -161,20 +163,7 @@ export default async function OperationsPage({
                   <Link href="/admin/dispatch">Open dispatch queue</Link>
                 </DashboardCard>
                 <DashboardCard title="Network readiness">
-                  <p>
-                    {
-                      (drivers.data ?? []).filter((driver) => driver.online)
-                        .length
-                    }{" "}
-                    drivers available ·{" "}
-                    {
-                      (drivers.data ?? []).filter(
-                        (driver) =>
-                          driver.verification_status === "under_review",
-                      ).length
-                    }{" "}
-                    awaiting review
-                  </p>
+                  <p><strong>{drivers.count ?? 0}</strong> submitted applications awaiting review.</p>
                   <p>
                     {
                       (orgs.data ?? []).filter((org) => org.kind === "fleet")
@@ -195,7 +184,7 @@ export default async function OperationsPage({
                   </p>
                   <Link href="/organizations">Business accounts</Link>
                 </DashboardCard>
-                <OperationsRideList rides={queue} />
+                <p className="muted dashboard-wide">Showing up to 100 open bookings, earliest pickup first. Overview totals include all matching bookings.</p><OperationsRideList rides={queue} />
               </>
             ),
           },
@@ -209,60 +198,9 @@ export default async function OperationsPage({
                   id="verification"
                 >
                   <h2>Driver verification</h2>
-                  <p>
-                    Review driver and vehicle documents before approval. Expired
-                    documents cannot be approved. Applications awaiting review
-                    appear first.
-                  </p>
-                  {!drivers.data?.length && (
-                    <EmptyState title="No driver applications">
-                      New applications will appear here for review.
-                    </EmptyState>
-                  )}
-                  {[...(drivers.data ?? [])]
-                    .sort(
-                      (a, b) =>
-                        Number(b.verification_status === "under_review") -
-                        Number(a.verification_status === "under_review"),
-                    )
-                    .map((driver) => (
-                      <details key={driver.id}>
-                        <summary>
-                          Driver {driver.id.slice(0, 8)} ·{" "}
-                          <StatusPill status={driver.verification_status} /> ·{" "}
-                          {driver.online ? "Available" : "Offline"}
-                        </summary>
-                        <Link href={`/admin/drivers/${driver.id}`}>
-                          Open application & documents
-                        </Link>
-                        <form action={reviewDriver} className="compact-form">
-                          <input
-                            name="driver_id"
-                            type="hidden"
-                            value={driver.id}
-                          />
-                          <label>
-                            Decision
-                            <select name="decision">
-                              <option value="verified">
-                                Approve verification
-                              </option>
-                              <option value="rejected">
-                                Reject application
-                              </option>
-                              <option value="suspended">Suspend driver</option>
-                            </select>
-                          </label>
-                          <label>
-                            Review reason
-                            <input name="reason" maxLength={1000} required />
-                          </label>
-                          <SubmitButton pendingLabel="Saving review…">
-                            Record review
-                          </SubmitButton>
-                        </form>
-                      </details>
-                    ))}
+                  <p>Review applicant details, vehicles and private documents in the driver application queue. Incomplete drafts are excluded before pagination.</p>
+                  <p><strong>{drivers.count ?? 0}</strong> submitted applications awaiting review.</p>
+                  <div className="button-row"><Link className="button button-primary" href="/admin/drivers">Review applications</Link><Link className="button button-secondary" href="/admin/drivers?status=all">All submitted drivers</Link></div>
                 </section>
               </>
             ),
@@ -323,6 +261,7 @@ export default async function OperationsPage({
                 </section>
                 <section className="dashboard-card" id="backup">
                   <h2>Backup driver readiness</h2>
+                  {!isIsolatedDemoEnvironment() && <p>Legacy backup activation is unavailable for real pilot rides. Use the versioned reassignment review in Needs Attention before the driver heads to pickup. Active passenger trips cannot be reassigned.</p>}
                   <p>
                     Confirmation window: {settings.scheduled_confirmation_hours}{" "}
                     hours before pickup. Operations checks readiness and
@@ -350,7 +289,7 @@ export default async function OperationsPage({
                           name="ride_id"
                           value={backup.ride_request_id}
                         />
-                        <SubmitButton pendingLabel="Activating…">
+                        <SubmitButton pendingLabel="Activating…" disabled={!isIsolatedDemoEnvironment()}>
                           Activate backup
                         </SubmitButton>
                       </ConfirmForm>
@@ -371,7 +310,7 @@ export default async function OperationsPage({
                         Vehicle reference (full ID)
                         <input name="vehicle_id" required />
                       </label>
-                      <SubmitButton pendingLabel="Reserving…">
+                      <SubmitButton pendingLabel="Reserving…" disabled={!isIsolatedDemoEnvironment()}>
                         Reserve backup
                       </SubmitButton>
                     </form>
@@ -437,63 +376,7 @@ export default async function OperationsPage({
                   )}
                   <details>
                     <summary>Activate, extend, cancel or change plan</summary>
-                    <form action={manageSubscription} className="compact-form">
-                      <label>
-                        Business
-                        <select name="organization_id" required>
-                          {(orgs.data ?? []).map((org) => (
-                            <option key={org.id} value={org.id}>
-                              {org.name} · {org.kind}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-                      <label>
-                        Plan
-                        <select name="plan_id" required>
-                          {(plans.data ?? []).map((plan) => (
-                            <option key={plan.id} value={plan.id}>
-                              {plan.audience} · {plan.display_name}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-                      <div className="form-grid">
-                        <label>
-                          Status
-                          <select name="status">
-                            {[
-                              "trial",
-                              "active",
-                              "past_due",
-                              "cancelled",
-                              "expired",
-                            ].map((status) => (
-                              <option key={status} value={status}>
-                                {status.replaceAll("_", " ")}
-                              </option>
-                            ))}
-                          </select>
-                        </label>
-                        <label>
-                          Expiration (Philippines)
-                          <input type="date" name="expires_at" required />
-                        </label>
-                        <label>
-                          Manual billing
-                          <select name="billing_status">
-                            <option value="manual_due">
-                              Manual payment due
-                            </option>
-                            <option value="settled">Settled</option>
-                            <option value="waived">Waived</option>
-                          </select>
-                        </label>
-                      </div>
-                      <SubmitButton pendingLabel="Updating…">
-                        Update subscription
-                      </SubmitButton>
-                    </form>
+                    <AdminSubscriptionForm organizations={orgs.data ?? []} plans={plans.data ?? []} subscriptions={subscriptions.data ?? []}/>
                   </details>
                 </section>
               </>
@@ -504,6 +387,18 @@ export default async function OperationsPage({
             label: "System",
             content: (
               <>
+                <section className="dashboard-card">
+                  <h2>Release controls</h2>
+                  <p>Pause and area closure reject new requests. Confirmed and active rides remain available. Integrations off blocks optional simulated provider actions; it does not stop authentication, trip state or manual cash records.</p>
+                  <form action={setReleaseControls} className="compact-form">
+                    <label className="check-label"><input type="checkbox" name="bookings_paused" defaultChecked={settings.bookings_paused}/> Pause new bookings</label>
+                    <label className="check-label"><input type="checkbox" name="service_area_open" defaultChecked={settings.service_area_open}/> Entire configured pilot service area open</label>
+                    <label className="check-label"><input type="checkbox" name="integrations_enabled" defaultChecked={settings.integrations_enabled}/> Optional integrations enabled</label>
+                    <label>Reason<textarea name="reason" minLength={5} maxLength={2000} required/></label>
+                    <SubmitButton pendingLabel="Saving controls…">Save release controls</SubmitButton>
+                  </form>
+                </section>
+                <section className="dashboard-card"><h2>Capabilities</h2>{releaseCapabilities(settings.integrations_enabled, settings.demo_mode && settings.mock_payment_enabled).map(capability => <p key={capability.name}><strong>{capability.name} · {capability.mode}</strong><br/>{capability.detail}</p>)}</section>
                 <section className="dashboard-card" id="configuration">
                   <h2>Application configuration</h2>
                   <form action={updateConfiguration} className="compact-form">
@@ -513,7 +408,7 @@ export default async function OperationsPage({
                         type="number"
                         name="driver_commission_percent"
                         min={0}
-                        max={100}
+                        max={0}
                         step="0.01"
                         defaultValue={settings.driver_commission_percent}
                         required
@@ -601,7 +496,8 @@ export default async function OperationsPage({
                 </section>
                 <section className="dashboard-card">
                   <h2>Demo payment testing</h2>
-                  {process.env.HATIDONE_DEMO_MODE === "true" &&
+                  {isIsolatedDemoEnvironment() &&
+                  settings.integrations_enabled &&
                   settings.demo_mode &&
                   settings.mock_payment_enabled ? (
                     <>

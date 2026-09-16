@@ -4,8 +4,7 @@ export interface PaymentProvider { simulate(input: { eventId: string; bookingId:
 export type RuntimeMode = { environment: string; demoMode: boolean; mockPaymentEnabled: boolean };
 export function mockPaymentsAllowed(mode: RuntimeMode): boolean {
   // The caller must derive this from trusted server configuration, never request input.
-  return mode.mockPaymentEnabled && (mode.environment === 'development' || mode.environment === 'test'
-    || (mode.environment === 'production' && mode.demoMode));
+  return mode.mockPaymentEnabled && mode.demoMode && (mode.environment === 'demo' || mode.environment === 'test');
 }
 export class MockPaymentProvider implements PaymentProvider {
   constructor(private readonly mode: RuntimeMode) {

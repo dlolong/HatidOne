@@ -8,7 +8,10 @@ export function WorkspaceTabs({ sections, label = 'Workspace sections' }: { sect
     function selectHash() {
       let requested = window.location.hash.slice(1);
       if (!requested) { try { requested = sessionStorage.getItem(`hatidone-section:${window.location.pathname}`) ?? ''; } catch { /* Browser storage can be disabled. */ } }
-      if (sections.some(section => section.id === requested)) setActive(requested);
+      if (sections.some(section => section.id === requested)) {
+        setActive(requested);
+        try { sessionStorage.setItem(`hatidone-section:${window.location.pathname}`, requested); } catch { /* Browser storage can be disabled. */ }
+      }
     }
     selectHash();
     window.addEventListener('hashchange', selectHash);

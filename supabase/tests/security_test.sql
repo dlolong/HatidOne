@@ -46,6 +46,12 @@ select pg_temp.assert_true((select count(*)=0 from public.notifications),'outsid
 select pg_temp.assert_rejected($q$update public.profiles set role='admin' where id=auth.uid()$q$,'permission denied','passenger cannot escalate to admin');
 select pg_temp.assert_rejected($q$update public.profiles set role='fleet_admin' where id=auth.uid()$q$,'permission denied','passenger cannot escalate to fleet');
 select pg_temp.assert_rejected($q$update public.ride_requests set estimated_fare=1$q$,'permission denied','client cannot change fare');
+select pg_temp.assert_rejected($q$update public.trips set driver_earnings=999999$q$,'permission denied','client cannot change trip earnings');
+select pg_temp.assert_rejected($q$update public.ride_assignments set driver_id='20000000-0000-4000-8000-000000000009'$q$,'permission denied','client cannot change assignment');
+select pg_temp.assert_rejected($q$update public.driver_profiles set verification_status='verified'$q$,'permission denied','client cannot self-verify with direct table update');
+select pg_temp.assert_true((select count(*)=0 from storage.objects where bucket_id in ('driver-documents','vehicle-documents')),'outsider cannot access private document objects');
+select pg_temp.assert_rejected($q$select public.record_driver_document('drivers_license','10000000-0000-4000-8000-000000000002/DEMO-ONLY.pdf',current_date+365)$q$,'driver role required|start driver application first','passenger cannot attach another driver document');
+
 select pg_temp.assert_rejected($q$select public.admin_update_config('{"driver_commission_percent":99}')$q$,'admin role required','passenger cannot change commission');
 select pg_temp.assert_rejected($q$select public.get_passenger_trip_pin('40000000-0000-4000-8000-000000000002')$q$,'PIN unavailable','unrelated passenger cannot retrieve PIN');
 select pg_temp.assert_rejected($q$select public.send_ride_message('40000000-0000-4000-8000-000000000002','intrusion',gen_random_uuid())$q$,'participant required','unrelated passenger cannot message');
@@ -59,6 +65,7 @@ select pg_temp.assert_rejected($q$select public.create_ride_offers('40000000-000
 select pg_temp.assert_rejected($q$select public.manual_assign_ride('40000000-0000-4000-8000-000000000005','20000000-0000-4000-8000-000000000002','30000000-0000-4000-8000-000000000002')$q$,'operations role required','fleet cannot assign itself unrelated private booking');
 select pg_temp.assert_true((public.get_fleet_resources('50000000-0000-4000-8000-000000000001')->'drivers')::text not like '%current_location%','fleet projection excludes exact location');
 select pg_temp.assert_rejected($q$select public.get_partner_referrals('50000000-0000-4000-8000-000000000002')$q$,'partner manager required','Fleet A cannot read Partner B referrals');
+select pg_temp.assert_true((select count(*)=0 from storage.objects where bucket_id in ('driver-documents','vehicle-documents')),'fleet cannot access driver private document objects');
 reset role;
 select set_config('request.jwt.claim.sub','10000000-0000-4000-8000-000000000001',true);
 set local role authenticated;
@@ -73,7 +80,7 @@ select pg_temp.assert_rejected($q$select public.advance_trip('40000000-0000-4000
 reset role;
 select set_config('request.jwt.claim.sub','10000000-0000-4000-8000-000000000002',true);
 set local role authenticated;
-select pg_temp.assert_rejected($q$select public.get_passenger_trip_pin('40000000-0000-4000-8000-000000000002')$q$,'PIN unavailable','assigned driver cannot retrieve passenger PIN');
+select pg_temp.assert_rejected($q$select public.get_passenger_trip_pin('40000000-0000-4000-8000-000000000002')$q$,'PIN unavailable|active passenger required','assigned driver cannot retrieve passenger PIN');
 select pg_temp.assert_rejected($q$select trip_pin_hash from public.trips$q$,'permission denied','driver cannot select PIN hashes');
 select pg_temp.assert_true((select count(*)=1 from public.driver_documents),'Driver A sees own license only');
 select pg_temp.assert_true((select count(*)=1 from public.ride_messages),'assigned driver sees passenger message');
@@ -83,7 +90,10 @@ select pg_temp.assert_rejected($q$select public.admin_review_driver('20000000-00
 select pg_temp.assert_rejected($q$update public.payments set status='paid'$q$,'permission denied','driver cannot change payment status');
 reset role;
 -- Make a same-day trip to test PIN counters and arrival wait, using trusted fixture setup.
+-- Disposable fixture clock advance only; clients cannot disable this owner-only trigger.
+alter table public.ride_requests disable trigger guard_accepted_fare;
 update public.ride_requests set scheduled_at=now()-interval '5 minutes' where id='40000000-0000-4000-8000-000000000002';
+alter table public.ride_requests enable trigger guard_accepted_fare;
 set local role authenticated;
 select pg_temp.assert_true(public.advance_trip('40000000-0000-4000-8000-000000000002','heading')='driver_en_route','driver heads to pickup');
 select pg_temp.assert_true(public.advance_trip('40000000-0000-4000-8000-000000000002','arrived')='driver_arrived','driver arrives');
@@ -91,7 +101,7 @@ select pg_temp.assert_rejected($q$select public.advance_trip('40000000-0000-4000
 select pg_temp.assert_true(public.advance_trip('40000000-0000-4000-8000-000000000002','start','invalid')='driver_arrived','incorrect PIN cannot start trip');
 reset role;
 select pg_temp.assert_true((select failed_attempts=1 from private.trip_secrets where ride_request_id='40000000-0000-4000-8000-000000000002'),'incorrect PIN attempt persists');
-select set_config('test.pin',(select pin from private.trip_secrets where ride_request_id='40000000-0000-4000-8000-000000000002'),true);
+do $$ begin perform set_config('test.pin',(select pin from private.trip_secrets where ride_request_id='40000000-0000-4000-8000-000000000002'),true); end $$;
 set local role authenticated;
 select pg_temp.assert_true(public.advance_trip('40000000-0000-4000-8000-000000000002','start',current_setting('test.pin'))='trip_started','correct PIN starts assigned trip');
 select pg_temp.assert_true(public.advance_trip('40000000-0000-4000-8000-000000000002','complete')='trip_completed','driver completes trip');
@@ -137,13 +147,14 @@ reset role;
 select pg_temp.assert_true((select count(*)=2 from public.payment_events where payment_id=current_setting('test.payment')::uuid),'duplicate mock event did not duplicate ledger');
 select set_config('request.jwt.claim.sub','10000000-0000-4000-8000-000000000001',true);
 set local role authenticated;
-select pg_temp.assert_rejected($q$select public.request_driver_application()$q$,'active passenger bookings','active passenger cannot convert to driver');
+select public.request_driver_application();
+select pg_temp.assert_true((select role='passenger' from public.profiles where id=auth.uid()),'active passenger can apply without converting operational role');
 reset role;
 select set_config('request.jwt.claim.sub','10000000-0000-4000-8000-000000000010',true);
 set local role authenticated;
 select public.request_driver_application();
 select public.request_driver_application();
-select pg_temp.assert_true((select role='driver' from public.profiles where id=auth.uid()),'explicit application creates driver role only');
+select pg_temp.assert_true((select role='passenger' from public.profiles where id=auth.uid()),'explicit application preserves passenger role until trusted approval');
 select pg_temp.assert_true((select verification_status='pending' and not online from public.driver_profiles where user_id=auth.uid()),'new driver application pending and offline');
 select pg_temp.assert_rejected($q$select public.admin_update_config('{}')$q$,'admin role required','driver enrollment does not grant admin');
 reset role;

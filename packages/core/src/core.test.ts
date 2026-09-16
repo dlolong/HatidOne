@@ -60,9 +60,12 @@ describe('mock payment boundary', () => {
   it('fails closed in ordinary production and when the feature is disabled', () => {
     expect(() => new MockPaymentProvider({ environment: 'production', demoMode: false, mockPaymentEnabled: true })).toThrow();
     expect(mockPaymentsAllowed({ environment: 'development', demoMode: true, mockPaymentEnabled: false })).toBe(false);
+    expect(mockPaymentsAllowed({ environment: 'production', demoMode: true, mockPaymentEnabled: true })).toBe(false);
+    expect(mockPaymentsAllowed({ environment: 'pilot', demoMode: true, mockPaymentEnabled: true })).toBe(false);
+    expect(mockPaymentsAllowed({ environment: 'test', demoMode: false, mockPaymentEnabled: true })).toBe(false);
   });
   it('marks every simulated result as demo', async () => {
-    const provider = new MockPaymentProvider({ environment: 'test', demoMode: false, mockPaymentEnabled: true });
+    const provider = new MockPaymentProvider({ environment: 'test', demoMode: true, mockPaymentEnabled: true });
     expect(await provider.simulate({ eventId: '11111111-1111-4111-8111-111111111111', bookingId: '22222222-2222-4222-8222-222222222222', status: 'paid' })).toMatchObject({ label: 'DEMO PAYMENT', source: 'mock', status: 'paid' });
   });
 });

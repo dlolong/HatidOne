@@ -1,0 +1,23 @@
+{
+  "checkedAt": "2026-09-08T13:57:55.065Z",
+  "environment": "disposable local backend",
+  "checks": [
+    "Driver review requires an explicit decision",
+    "Driver review save stays on the selected application",
+    "Suspension is persisted by the trusted review RPC",
+    "Reviewed reinstatement restores verification and leaves the driver offline",
+    "Incomplete configuration is rejected without changing matching weights",
+    "Unreviewed quotes disable offer creation",
+    "Missing ride error preserves requested ride and radius",
+    "Missing dispatch ride explains why it is absent from the queue",
+    "Stale queue page returns to the first page",
+    "verification tab has no overflow at 360px",
+    "safety tab has no overflow at 360px",
+    "business tab has no overflow at 360px",
+    "system tab has no overflow at 360px",
+    "verification tab has no overflow at 1440px",
+    "safety tab has no overflow at 1440px",
+    "business tab has no overflow at 1440px",
+    "system tab has no overflow at 1440px"
+  ]
+}

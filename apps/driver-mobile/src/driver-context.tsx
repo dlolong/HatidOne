@@ -4,6 +4,7 @@ import {
   useContext,
   useEffect,
   useState,
+  useRef,
   type ReactNode,
 } from "react";
 import { AppState } from "react-native";
@@ -15,6 +16,9 @@ import { loadDriverData, rpc, type DriverData } from "./data";
 type DriverContext = {
   data: DriverData | null;
   loading: boolean;
+  stale: boolean;
+  updatedAt: number | null;
+  locationUpdatedAt: number | null;
   error: string | null;
   reload: () => Promise<void>;
   run: (
@@ -42,6 +46,8 @@ export function DriverProvider({ children }: { children: ReactNode }) {
   const resource = useResource(loader, [client, session?.user.id]);
   const { reload } = resource;
   const userId = session?.user.id;
+  const activeMutation = useRef(false);
+  const [locationUpdatedAt, setLocationUpdatedAt] = useState<number | null>(null);
   const [gpsReady, setGpsReady] = useState(false);
   const [busy, setBusy] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
@@ -54,7 +60,9 @@ export function DriverProvider({ children }: { children: ReactNode }) {
     success: string,
     expectedStatus?: string,
   ) => {
-    if (!client || busy) return false;
+    if (!client || activeMutation.current) return false;
+    if (resource.stale) { setActionError("Updates unavailable. Refresh authoritative trip details before trying this action."); await resource.reload(); return false; }
+    activeMutation.current = true;
     setBusy(true);
     setFeedback(null);
     setActionError(null);
@@ -73,8 +81,10 @@ export function DriverProvider({ children }: { children: ReactNode }) {
           ? error.message
           : "The request could not be completed. Refresh and try again.",
       );
+      await resource.reload();
       return false;
     } finally {
+      activeMutation.current = false;
       setBusy(false);
     }
   };
@@ -94,6 +104,7 @@ export function DriverProvider({ children }: { children: ReactNode }) {
         longitude: fix.coords.longitude,
       };
       setLocation(point);
+      setLocationUpdatedAt(fix.timestamp);
       setGpsReady(true);
       return point;
     } catch (error) {
@@ -123,13 +134,8 @@ export function DriverProvider({ children }: { children: ReactNode }) {
           void reload();
         },
       )
-      .subscribe();
-    // Polling also covers local backends where realtime publication has not been enabled.
-    const timer = setInterval(() => {
-      if (AppState.currentState === "active") void reload();
-    }, 30000);
+      .subscribe((status) => { if (status === "SUBSCRIBED") void reload(); });
     return () => {
-      clearInterval(timer);
       void client.removeChannel(channel);
     };
   }, [client, userId, reload]);
@@ -137,7 +143,9 @@ export function DriverProvider({ children }: { children: ReactNode }) {
     if (!client || !resource.data?.driver?.online || !gpsReady) return;
     let subscription: Location.LocationSubscription | undefined;
     let stopped = false;
+    let generation = 0;
     const start = async () => {
+      const currentGeneration = ++generation;
       if (AppState.currentState !== "active") return;
       try {
         const watcher = await Location.watchPositionAsync(
@@ -147,12 +155,13 @@ export function DriverProvider({ children }: { children: ReactNode }) {
             distanceInterval: 50,
           },
           async (fix) => {
-            if (stopped || AppState.currentState !== "active") return;
+            if (stopped || currentGeneration !== generation || AppState.currentState !== "active") return;
             const point = {
               latitude: fix.coords.latitude,
               longitude: fix.coords.longitude,
             };
             setLocation(point);
+            setLocationUpdatedAt(fix.timestamp);
             const { error } = await client.rpc("publish_driver_location", {
               p_latitude: point.latitude,
               p_longitude: point.longitude,
@@ -163,7 +172,7 @@ export function DriverProvider({ children }: { children: ReactNode }) {
               );
           },
         );
-        if (stopped || AppState.currentState !== "active") watcher.remove();
+        if (stopped || currentGeneration !== generation || AppState.currentState !== "active") watcher.remove();
         else subscription = watcher;
       } catch {
         setLocationError(
@@ -173,12 +182,14 @@ export function DriverProvider({ children }: { children: ReactNode }) {
     };
     void start();
     const listener = AppState.addEventListener("change", (state) => {
+      generation++;
       subscription?.remove();
       subscription = undefined;
       if (state === "active" && !stopped) void start();
     });
     return () => {
       stopped = true;
+      generation++;
       subscription?.remove();
       listener.remove();
     };
@@ -192,7 +203,8 @@ export function DriverProvider({ children }: { children: ReactNode }) {
         actionError,
         run,
         location,
-        setManualLocation: setLocation,
+        locationUpdatedAt,
+        setManualLocation: (point) => { setLocation(point); setLocationUpdatedAt(null); setGpsReady(false); },
         locate,
         locationError,
       }}

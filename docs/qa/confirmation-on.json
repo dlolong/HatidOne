@@ -1,0 +1,33 @@
+{
+  "policy": "on",
+  "passed": 26,
+  "complete": true,
+  "results": [
+    "on passenger: profile stays passenger; email policy never grants driver role",
+    "on passenger: no-session continuation retains selected journey",
+    "on passenger: no application created without session",
+    "on passenger: protected pages deny the unconfirmed account",
+    "on passenger: actual confirmation restores intended journey",
+    "on passenger: refresh retains session and destination",
+    "on passenger: logout/login returns to the same account journey",
+    "on passenger: duplicate signup produces error or provider-safe unauthenticated response",
+    "on driver: profile stays passenger; email policy never grants driver role",
+    "on driver: no-session continuation retains selected journey",
+    "on driver: no application created without session",
+    "on driver: protected pages deny the unconfirmed account",
+    "on driver: callback GET does not create a draft",
+    "on driver: actual confirmation restores intended journey",
+    "on driver: refresh retains session and destination",
+    "on driver: one unapproved offline application uses the same user",
+    "on driver: authenticated repeat 1 resumes application",
+    "on driver: authenticated repeat 2 resumes application",
+    "on driver: repeated requests and reload do not duplicate or reset application",
+    "on driver: pending account cannot become dispatch-available",
+    "on driver: pending account cannot accept trips",
+    "on driver: direct self-approval denied",
+    "on driver: direct role escalation denied",
+    "on driver: logout/login returns to the same account journey",
+    "on driver: duplicate signup produces error or provider-safe unauthenticated response",
+    "on: failed signup produces no authenticated success"
+  ]
+}

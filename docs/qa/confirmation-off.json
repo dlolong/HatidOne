@@ -1,0 +1,28 @@
+{
+  "policy": "off",
+  "passed": 21,
+  "complete": true,
+  "results": [
+    "off passenger: profile stays passenger; email policy never grants driver role",
+    "off passenger: immediate session reaches destination without confirmation or extra login",
+    "off passenger: session cookies persisted before protected SSR destination",
+    "off passenger: refresh retains session and destination",
+    "off passenger: logout/login returns to the same account journey",
+    "off passenger: duplicate signup produces error or provider-safe unauthenticated response",
+    "off driver: profile stays passenger; email policy never grants driver role",
+    "off driver: immediate session reaches destination without confirmation or extra login",
+    "off driver: session cookies persisted before protected SSR destination",
+    "off driver: refresh retains session and destination",
+    "off driver: one unapproved offline application uses the same user",
+    "off driver: authenticated repeat 1 resumes application",
+    "off driver: authenticated repeat 2 resumes application",
+    "off driver: repeated requests and reload do not duplicate or reset application",
+    "off driver: pending account cannot become dispatch-available",
+    "off driver: pending account cannot accept trips",
+    "off driver: direct self-approval denied",
+    "off driver: direct role escalation denied",
+    "off driver: logout/login returns to the same account journey",
+    "off driver: duplicate signup produces error or provider-safe unauthenticated response",
+    "off: failed signup produces no authenticated success"
+  ]
+}

@@ -3,6 +3,7 @@ import { View } from "react-native";
 import { router } from "expo-router";
 import {
   Button,
+  AccountDeletionRequest,
   Card,
   Chip,
   Row,
@@ -123,6 +124,7 @@ export default function Account() {
       {success && <Notice tone="success">{success}</Notice>}
       {section === "profile" && (
         <>
+          <AccountDeletionRequest />
           <Card>
             <Heading size="section">
               {auth.profile?.first_name} {auth.profile?.last_name}

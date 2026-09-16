@@ -1,22 +1,30 @@
 'use client';
-import { useState, useTransition } from 'react';
+import { useState } from 'react';
 import { DEMO_LOCATIONS } from '@hatidone/core';
-import { createBooking, quoteBooking } from '@/app/(protected)/book/actions';
+import { createBooking } from '@/app/(protected)/book/actions';
 import { SubmitButton } from './submit-button';
-import { LocationFields } from './location-fields';
 import type { BookingIntent } from '@/lib/booking/partner-link';
-type Point = { address:string; lat:string; lng:string };
-function initial(value?:string):Point { const known=DEMO_LOCATIONS.find(location=>location.id===value);return {address:known?.label??value??'',lat:known?.coordinates?.latitude.toString()??'',lng:known?.coordinates?.longitude.toString()??''}; }
-export function BookingPlanner({ requestId, intent, rebook }: { requestId:string; intent:BookingIntent; rebook?:{pickup:Point;dropoff:Point} }) {
-  const [pickup,setPickup]=useState(rebook?.pickup??initial(intent.pickup));const [dropoff,setDropoff]=useState(rebook?.dropoff??{...initial(intent.destination),...(intent.destinationLat!==undefined?{lat:String(intent.destinationLat)}:{}),...(intent.destinationLng!==undefined?{lng:String(intent.destinationLng)}:{})});
-  const [vehicle,setVehicle]=useState('sedan');const [quote,setQuote]=useState<{estimatedFare:number;distanceMeters:number;durationSeconds:number}|null>(null);const [error,setError]=useState('');const [pending,startTransition]=useTransition();
-  const invalidate=()=>{setQuote(null);setError('');};
-  return <form action={createBooking} className="booking-form"><input name="requestId" type="hidden" value={requestId} /><input name="partnerId" type="hidden" value={intent.partnerId??''} /><input name="externalReference" type="hidden" value={intent.externalReference??''} />
-    <div className="form-grid"><LocationFields label="Pickup" names={{address:'pickupAddress',lat:'pickupLat',lng:'pickupLng'}} value={pickup} onChange={value=>{setPickup(value);invalidate();}} currentLocation /><LocationFields label="Destination" names={{address:'dropoffAddress',lat:'dropoffLat',lng:'dropoffLng'}} value={dropoff} onChange={value=>{setDropoff(value);invalidate();}} /></div>
-    <div className="form-grid"><label>Route preference<select name="routePreference"><option value="fastest">Fastest</option><option value="avoid_tolls">Avoid tolls</option><option value="preferred_route">Discuss preferred route</option></select></label><label>Pickup time (Philippines)<input name="scheduledAt" required type="datetime-local" defaultValue={intent.scheduledAt?new Date(Date.parse(intent.scheduledAt)+8*3600_000).toISOString().slice(0,16):undefined} /></label><label>Service<select name="serviceType" defaultValue={intent.serviceType??'scheduled'}><option value="scheduled">Scheduled ride</option><option value="transfer">Airport / resort transfer</option><option value="local">Local ride</option></select></label><label>Passengers<input name="passengerCount" type="number" min={1} max={30} defaultValue={intent.guestCount??1} required /></label><label>Vehicle<select name="vehicleType" value={vehicle} onChange={event=>{setVehicle(event.target.value);invalidate();}}><option value="sedan">Sedan</option><option value="suv">SUV</option><option value="van">Van</option><option value="motorcycle">Motorcycle</option></select></label></div><label>Pickup notes (optional)<textarea name="passengerNotes" maxLength={500} placeholder="Flight number, luggage or pickup instructions" /></label>
-    <p>Schedule pickup 30 minutes to 180 days ahead. Reference coordinates are approximate; confirm the exact pickup and destination.</p>
-    <button type="button" className="button button-secondary" disabled={pending} onClick={()=>startTransition(async()=>{if([pickup.lat,pickup.lng,dropoff.lat,dropoff.lng].some(value=>!value.trim())){setError('Choose known locations or enter coordinates to estimate the fare.');return;}const result=await quoteBooking({pickupLat:Number(pickup.lat),pickupLng:Number(pickup.lng),dropoffLat:Number(dropoff.lat),dropoffLng:Number(dropoff.lng),vehicleType:vehicle});setQuote(result.quote);setError(result.error??'');})}>{pending?'Calculating…':'Preview fare'}</button>
-    {error&&<p className="notice notice-error" role="alert">{error}</p>}{quote&&<aside className="fare-notice" role="status"><h2>Local estimate</h2><dl><div><dt>Ride fare</dt><dd>₱{quote.estimatedFare.toFixed(2)}</dd></div><div><dt>Tolls</dt><dd>Unverified · confirm with driver</dd></div><div><dt>Discounts</dt><dd>₱0</dd></div><div><dt>Estimated total before tolls</dt><dd className="fare-total">₱{quote.estimatedFare.toFixed(2)}</dd></div></dl><p>{(quote.distanceMeters/1000).toFixed(1)} km straight-line estimate · {Math.ceil(quote.durationSeconds/60)} estimated minutes. Actual travel time and tolls may differ.</p></aside>}
-    <p>Cash payment. No charge is taken when you request a ride.</p><SubmitButton pendingLabel="Requesting…">Confirm ride request</SubmitButton>
+type Point = { address: string; lat: string; lng: string };
+function address(value?: string) { return DEMO_LOCATIONS.find(location => location.id === value)?.label ?? value ?? ''; }
+export function BookingPlanner({ requestId, intent, rebook }: { requestId: string; intent: BookingIntent; rebook?: { pickup: Point; dropoff: Point } }) {
+  const [vehicle, setVehicle] = useState('sedan');
+  const scheduled = intent.scheduledAt && Number.isFinite(Date.parse(intent.scheduledAt)) ? new Date(Date.parse(intent.scheduledAt) + 8 * 3600_000).toISOString().slice(0, 16) : undefined;
+  return <form action={createBooking} className="booking-form">
+    <input name="requestId" type="hidden" value={requestId} />
+    <input name="partnerId" type="hidden" value={intent.partnerId ?? ''} />
+    <input name="externalReference" type="hidden" value={intent.externalReference ?? ''} />
+    <div className="form-grid">
+      <label>Pickup address and landmark<input name="pickupAddress" required maxLength={240} defaultValue={rebook?.pickup.address ?? address(intent.pickup)} autoComplete="street-address" /></label>
+      <label>Destination address and landmark<input name="dropoffAddress" required maxLength={240} defaultValue={rebook?.dropoff.address ?? address(intent.destination)} /></label>
+      <label>Route preference<select name="routePreference"><option value="fastest">Discuss fastest route</option><option value="avoid_tolls">Prefer avoiding tolls</option><option value="preferred_route">Discuss preferred route</option></select></label>
+      <label>Pickup time (Asia/Manila)<input name="scheduledAt" required type="datetime-local" defaultValue={scheduled} /></label>
+      <label>Service<select name="serviceType" defaultValue={intent.serviceType === 'transfer' ? 'transfer' : 'scheduled'}><option value="scheduled">Scheduled ride</option><option value="transfer">Airport / resort transfer</option></select></label>
+      <label>Passengers<input name="passengerCount" type="number" min={1} max={vehicle === 'motorcycle' ? 1 : vehicle === 'sedan' ? 4 : vehicle === 'suv' ? 6 : 15} defaultValue={intent.guestCount ?? 1} required /></label>
+      <label>Vehicle<select name="vehicleType" value={vehicle} onChange={event => setVehicle(event.target.value)}><option value="sedan">Sedan</option><option value="suv">SUV</option><option value="van">Van</option><option value="motorcycle">Motorcycle</option></select></label>
+    </div>
+    <label>Pickup notes (optional)<textarea name="passengerNotes" maxLength={500} placeholder="Flight number, luggage or pickup instructions" /></label>
+    <aside className="fare-notice"><h2>Request a reviewed quote</h2><p>Operations must review your addresses, route, travel allowance and total fare. Location validation and arrival estimates are unavailable. You will accept the reviewed quote before driver assignment.</p></aside>
+    <p>Schedule pickup 30 minutes to 180 days ahead. This request does not confirm a driver. Cash collection is recorded after the trip; no payment is taken here.</p>
+    <SubmitButton pendingLabel="Requesting…">Request quote</SubmitButton>
   </form>;
 }

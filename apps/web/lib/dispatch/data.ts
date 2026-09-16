@@ -19,6 +19,8 @@ export type DriverOffer = {
 };
 
 export type DispatchRide = {
+  quote_status: string;
+  quote_version: number;
   id: string;
   pickup_address: string;
   dropoff_address: string;
@@ -111,7 +113,7 @@ export async function getDispatchQueue(): Promise<DispatchRide[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from('ride_requests')
-    .select('id, pickup_address, dropoff_address, scheduled_at, vehicle_type, estimated_fare, status')
+    .select('id, pickup_address, dropoff_address, scheduled_at, vehicle_type, estimated_fare, status, quote_status, quote_version')
     .in('status', ['requested', 'searching', 'offered'])
     .order('scheduled_at', { ascending: true, nullsFirst: false });
   if (error) throw new Error('Dispatch queue could not be loaded');

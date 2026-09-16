@@ -1,4 +1,4 @@
-import { requireRole } from '@/lib/auth/session';
+import { requireProfile } from '@/lib/auth/session';
 import { createClient } from '@/lib/supabase/server';
 
 export type RideRequestSummary = {
@@ -26,11 +26,12 @@ export type RideRequestEvent = {
 const RIDE_FIELDS = 'id, pickup_address, dropoff_address, scheduled_at, vehicle_type, estimated_distance_meters, estimated_duration_seconds, estimated_fare, passenger_notes, status, created_at';
 
 export async function getPassengerBookings(limit?: number): Promise<RideRequestSummary[]> {
-  await requireRole('passenger');
+  const profile = await requireProfile();
   const supabase = await createClient();
   let query = supabase
     .from('ride_requests')
     .select(RIDE_FIELDS)
+    .eq('passenger_id', profile.id)
     .order('scheduled_at', { ascending: false, nullsFirst: false });
   if (limit) query = query.limit(limit);
   const { data, error } = await query;
@@ -39,11 +40,12 @@ export async function getPassengerBookings(limit?: number): Promise<RideRequestS
 }
 
 export async function getPassengerBooking(id: string): Promise<{ booking: RideRequestSummary; events: RideRequestEvent[] } | null> {
-  await requireRole('passenger');
+  const profile = await requireProfile();
   const supabase = await createClient();
   const { data: booking, error } = await supabase
     .from('ride_requests')
     .select(RIDE_FIELDS)
+    .eq('passenger_id', profile.id)
     .eq('id', id)
     .maybeSingle();
   if (error) throw new Error('Booking could not be loaded');

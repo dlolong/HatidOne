@@ -5,7 +5,7 @@ export type EligibleDriver = {
   driverId: string;
   vehicleId: string;
   driverUserId: string;
-  distanceMeters: number;
+  distanceMeters: number | null;
 };
 
 export async function findEligibleDrivers(
@@ -24,7 +24,7 @@ export async function findEligibleDrivers(
     driverId: String(row.driver_id),
     vehicleId: String(row.vehicle_id),
     driverUserId: String(row.driver_user_id),
-    distanceMeters: Number(row.distance_meters),
+    distanceMeters: row.distance_meters === null ? null : Number(row.distance_meters),
   }));
 }
 

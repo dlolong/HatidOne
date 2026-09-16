@@ -15,7 +15,10 @@
     "android:open": "expo start --dev-client --android --port 8082",
     "check": "expo install --check",
     "ios:build": "expo run:ios --no-bundler",
-    "android:build": "expo run:android --no-bundler"
+    "android:build": "expo run:android --no-bundler",
+    "preview:check": "node ../../packages/mobile/scripts/check-preview.cjs",
+    "preview:android": "HATIDONE_RELEASE_BUILD=1 expo run:android --variant release --no-bundler",
+    "preview:ios": "HATIDONE_RELEASE_BUILD=1 expo run:ios --configuration Release --no-bundler"
   },
   "dependencies": {
     "@hatidone/core": "*",

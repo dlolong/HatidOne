@@ -5,10 +5,10 @@ export type Ride = {
   id: string;
   pickup_address: string;
   dropoff_address: string;
-  pickup_latitude: number;
-  pickup_longitude: number;
-  dropoff_latitude: number;
-  dropoff_longitude: number;
+  pickup_latitude: number | null;
+  pickup_longitude: number | null;
+  dropoff_latitude: number | null;
+  dropoff_longitude: number | null;
   scheduled_at: string | null;
   status: RideRequestStatus;
   service_type: string;

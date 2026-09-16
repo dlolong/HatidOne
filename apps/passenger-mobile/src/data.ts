@@ -4,25 +4,28 @@ export interface Booking {
   id: string;
   pickup_address: string;
   dropoff_address: string;
-  pickup_lat: number;
-  pickup_lng: number;
-  dropoff_lat: number;
-  dropoff_lng: number;
+  pickup_lat: number | null;
+  pickup_lng: number | null;
+  dropoff_lat: number | null;
+  dropoff_lng: number | null;
   scheduled_at: string | null;
   vehicle_type: string;
   service_type: string;
   passenger_count: number;
   passenger_notes: string | null;
   status: RideRequestStatus;
-  estimated_fare: number;
-  estimated_distance_meters: number;
-  estimated_duration_seconds: number;
+  estimated_fare: number | null;
+  quote_status: "pending_review" | "offered" | "accepted" | "demo";
+  quote_version: number;
+  route_source: string;
+  estimated_distance_meters: number | null;
+  estimated_duration_seconds: number | null;
   route_preference: string;
   estimated_toll_amount: number | null;
   created_at: string;
 }
 const bookingColumns =
-  "id,pickup_address,dropoff_address,pickup_lat:pickup_latitude,pickup_lng:pickup_longitude,dropoff_lat:dropoff_latitude,dropoff_lng:dropoff_longitude,scheduled_at,vehicle_type,service_type,passenger_count,passenger_notes,status,estimated_fare,estimated_distance_meters,estimated_duration_seconds,route_preference,estimated_toll_amount,created_at";
+  "id,pickup_address,dropoff_address,pickup_lat:pickup_latitude,pickup_lng:pickup_longitude,dropoff_lat:dropoff_latitude,dropoff_lng:dropoff_longitude,scheduled_at,vehicle_type,service_type,passenger_count,passenger_notes,status,estimated_fare,quote_status,quote_version,route_source,estimated_distance_meters,estimated_duration_seconds,route_preference,estimated_toll_amount,created_at";
 export async function getBookings(
   client: SupabaseClient | null,
   userId: string | undefined,

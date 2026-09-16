@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { requireRole } from '@/lib/auth/session';
+import { requireDriverApplicant } from '@/lib/driver/data';
 import { createClient } from '@/lib/supabase/server';
 import {
   hasAllowedDocumentSignature,
@@ -28,7 +28,7 @@ function finish(kind: 'error' | 'message', message: string): never {
 }
 
 export async function savePersonalDetails(formData: FormData) {
-  await requireRole('driver');
+  await requireDriverApplicant();
   const phone = textValue(formData, 'phone', 30);
   const preferredArea = textValue(formData, 'preferredArea', 120);
   if (!phone || !preferredArea) finish('error', 'Enter a valid phone number and preferred service area.');
@@ -44,7 +44,7 @@ export async function savePersonalDetails(formData: FormData) {
 }
 
 export async function saveVehicleDetails(formData: FormData) {
-  await requireRole('driver');
+  await requireDriverApplicant();
   const vehicleId = textValue(formData, 'vehicleId', 40);
   const vehicleType = formData.get('vehicleType');
   const brand = textValue(formData, 'brand', 80);
@@ -83,7 +83,7 @@ type UploadTarget = {
 };
 
 async function uploadDocument(formData: FormData, target: UploadTarget) {
-  const profile = await requireRole('driver');
+  const profile = await requireDriverApplicant();
   const file = formData.get('file');
   const expiration = parseExpirationDate(formData.get('expiresOn'));
   if (!(file instanceof File) || !isAllowedDocument(file)) {
@@ -143,7 +143,7 @@ export async function uploadVehicleDocument(formData: FormData) {
 }
 
 export async function submitOnboarding() {
-  await requireRole('driver');
+  await requireDriverApplicant();
   const supabase = await createClient();
   const { error } = await supabase.rpc('submit_driver_onboarding');
   if (error) finish('error', 'Complete personal details, vehicle details, and required documents before submitting.');

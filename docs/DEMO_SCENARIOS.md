@@ -1,6 +1,6 @@
 # Credential-free demo scenarios
 
-Run the [startup commands](SOLO_DEVELOPER_RUNBOOK.md). All accounts below use the local-only password `DEMO-ONLY-HatidOne!42`. Use separate browser profiles/incognito windows or the two mobile apps. Do not use these identities outside the local fixture environment.
+Run the [startup commands](SOLO_DEVELOPER_RUNBOOK.md). Each account below uses its own random password from the ignored private `.local-backend/test-accounts.json` (0600), created by local backend preparation. Open it privately; never paste its contents into logs or reports. An existing older backend is unchanged: newly prepared credentials authenticate only after fresh initialization or an explicitly confirmed disposable local reset. Use separate browser profiles/incognito windows or the two mobile apps. Do not use these identities outside the local fixture environment.
 
 | Role | Email |
 | --- | --- |

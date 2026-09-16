@@ -49,7 +49,7 @@ npm run demo:reset # destroys local demo records and recreates fixtures
 npm run demo:env # only creates missing env files
 ```
 
-`demo:seed` also resets the local database; it is not an additive production seed. Seeded users/businesses are fictional and share `DEMO-ONLY-HatidOne!42`. Use a private/incognito window per role. Seed document metadata is fictional; upload actual fictional test files through onboarding when testing signed document downloads or review.
+`demo:seed -- --confirm-local-reset` also resets the local database; it is not an additive production seed. Seeded users/businesses are fictional. Each user has an individual random password stored by local preparation in ignored `.local-backend/test-accounts.json` (0600). Open that file privately; never print or share its contents. Ordinary start preserves it; an explicitly confirmed disposable reset rotates it. Existing backend accounts do not change just because a new file is prepared. After a failed reset, `.local-backend/test-accounts.previous.json` retains the previous private credentials until a successful reset; treat it as sensitive too. Use a private/incognito window per role. Seed document metadata is fictional; upload actual fictional test files through onboarding when testing signed document downloads or review.
 
 ## Logs and exceptions
 
@@ -84,3 +84,23 @@ Before any hosted schema deployment, reconcile the repository's two historical `
 ## Mobile UI and simulator workflow
 
 Run `npm run mobile:doctor` before a native build and `npm run mobile:check` for both app checks. Use `npm run mobile:passenger` and `npm run mobile:driver` after installing their separate development clients. For browser-only previews, use `npm --workspace apps/passenger-mobile run web` and `npm --workspace apps/driver-mobile run web`. See [MOBILE_SIMULATOR_GUIDE.md](MOBILE_SIMULATOR_GUIDE.md) for exact iOS/Android build, GPS and localhost commands; [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md) defines the shared UI conventions.
+
+
+### Passenger registration and driver applications
+
+Use `/signup?intent=passenger` for booking and `/signup?intent=driver` for driving. Generic `/signup` requires choosing a journey. Existing passengers use Account → Driver application → Apply to drive; no second signup is needed. `/driver-application` reads the current state; only its Start application POST (or an authenticated driver signup POST) creates a pending draft. `/driver/onboarding` contains saved details, private uploads, submission and review/correction status. Applying preserves passenger role and history; only operations approval grants driver role.
+
+Apply migration `0010_driver_application_journey.sql` after the existing migration history has been reconciled; do not manually renumber previously applied migrations. Before hosted rollout, configure the trusted `NEXT_PUBLIC_SITE_URL` and allow the same origin’s `/auth/callback` with journey query parameters in Supabase Auth. Password recovery continues using `/auth/recovery/callback` and its separate cookies. Confirmation links use PKCE: open them in the browser that requested them, or retain `intent=driver` when returning to sign in/request another confirmation link. Do not treat a different-browser failure as permission to bypass confirmation. See [driver registration report](DRIVER_REGISTRATION_REPORT.md) for verification evidence and owner-only rollout steps.
+
+
+### Supabase controls signup confirmation
+
+The application does not have a separate confirmation flag. Supabase signup returning a valid session immediately opens `/book` (or the authorized booking continuation) for passengers. Driver signup starts/resumes the same account’s pending application and opens `/driver/onboarding` or its existing review status. The web SSR client writes session cookies before redirecting. Native storage and auth-event refresh behavior are unchanged.
+
+A successful response containing a user but **no session** stays unauthenticated and retains the selected passenger/driver context through confirmation/sign-in. A missing or malformed response is a retry error, not a success or delivery claim. Email-confirmation policy never grants driver approval. Missing web callback configuration does not block a session-returning signup; configure the trusted callback before using confirmation-enabled signup or recovery.
+
+For the **hosted development project**, the owner must open that project’s Authentication settings, locate **Confirm email**, disable it, and save. No hosted setting was changed by this code update. The existing `[auth.email]` section in `supabase/config.toml` already has `enable_confirmations = false`; local configuration does not update hosted projects.
+
+After changing local Supabase settings, restart the local services with `npm run backend:stop` followed by `npm run backend:start`. Do **not** use `demo:reset` or reset the database just to apply this setting. The test run restarted only its isolated registration QA stack; your existing local backend was not restarted. When enabling confirmation later, keep the trusted site URL, callback allowlist and mail configuration described in [the registration report](DRIVER_REGISTRATION_REPORT.md); registration code needs no policy switch.
+
+Existing-account issues are separate from new signup policy: try normal sign-in and the established confirmation/password-recovery paths using the same account. This change does not automatically confirm, delete, recreate or alter old accounts. No existing-account remediation was performed.

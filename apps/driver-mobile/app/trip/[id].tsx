@@ -13,10 +13,12 @@ import {
   RideChat,
   StatusPill,
   theme,
+  Notice,
 } from "@hatidone/mobile";
 import { canTransitionRide, type RideRequestStatus } from "@hatidone/types";
 import { useDriver } from "../../src/driver-context";
 import { Feedback, RideCard, RideRoute, Empty } from "../../src/components";
+import { CashCollection } from "../../src/CashCollection";
 import { label, schedule, statusTone } from "../../src/format";
 const next: Partial<
   Record<
@@ -55,7 +57,7 @@ const stages = [
 export default function TripScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { data, loading, reload, busy, run, locate } = useDriver();
+  const { data, loading, reload, busy, run, locate, stale } = useDriver();
   const [pin, setPin] = useState("");
   const [section, setSection] = useState("Trip");
   const assignment = data?.assignments.find((item) => item.ride.id === id);
@@ -86,13 +88,14 @@ export default function TripScreen() {
   };
   const primaryAction = ride && advance && canTransitionRide(ride.status, advance.target) ? (
     <Button label={advance.label} loading={busy}
-      disabled={ride.status === "driver_arrived" && !/^\d{6}$/.test(pin)}
+      disabled={stale || (ride.status === "assigned" && !assignment?.confirmed_at) || (ride.status === "driver_arrived" && !/^\d{6}$/.test(pin))}
       onPress={() => advance.action === "complete" ? confirm("complete", "Complete this trip?", "Confirm that you have reached the destination and the passenger has safely exited.") : void action(advance.action)} />
   ) : null;
   return (
     <Screen bottomInset scrollKey={section} refreshing={loading} onRefresh={() => void reload()} footer={section === "Trip" ? primaryAction : undefined}>
       <Feedback />
       {!ride ? !loading && <Empty title="Trip unavailable" action={<Button label="Back to Trips" variant="secondary" onPress={() => router.replace("/(tabs)/trips")} />}>Refresh to try again. Only trips assigned to your driver account can be opened.</Empty> : <>
+        {ride.status === "assigned" && !assignment?.confirmed_at && <Notice>Reconfirm this scheduled pickup before heading to the passenger.</Notice>}
         <StatusPill label={label(ride.status)} tone={statusTone(ride.status)} />
         <Heading>{ride.status === "trip_completed" ? "Trip completed" : "Your trip"}</Heading>
         <Row>{["Trip", "Details", "Messages", "Help"].map((value) => <Chip key={value} label={value} selected={section === value} onPress={() => setSection(value)} />)}</Row>
@@ -105,6 +108,7 @@ export default function TripScreen() {
               <Muted>Ask the passenger for the PIN in their booking before starting the trip.</Muted>
             </>}
             {ride.status === "assigned" && (assignment?.confirmed_at ? <Muted>Pickup confirmed.</Muted> : <Button label="Confirm scheduled pickup" variant="secondary" loading={busy} onPress={() => void run("confirm_ride_assignment", { p_ride_request_id: id }, "Pickup confirmed.")} />)}
+            {ride.status === "trip_completed" && <CashCollection rideId={id} />}
             {ride.status === "trip_completed" && <Button label="View earnings" onPress={() => router.replace("/(tabs)/earnings")} />}
           </Card>
           <Card>

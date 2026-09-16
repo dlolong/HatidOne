@@ -75,11 +75,11 @@ export interface FareBreakdown {
 export interface TransportRequestInput {
   client_request_id: string;
   pickup_address: string;
-  pickup_lat: number;
-  pickup_lng: number;
+  pickup_lat?: number | null;
+  pickup_lng?: number | null;
   dropoff_address: string;
-  dropoff_lat: number;
-  dropoff_lng: number;
+  dropoff_lat?: number | null;
+  dropoff_lng?: number | null;
   scheduled_at?: string;
   vehicle_type: VehicleType;
   service_type: ServiceType;
@@ -140,5 +140,30 @@ export interface BackupAssignment {
   driver_id: string;
   vehicle_id: string;
   status: 'ready' | 'activated' | 'cancelled';
+  created_at: string;
+}
+
+/** Separate from ride lifecycle: request receipt never implies price acceptance. */
+export type QuoteStatus = 'pending_review' | 'offered' | 'accepted' | 'demo';
+export interface ReviewedRideQuote {
+  ride_request_id: string;
+  version: number;
+  amount: number | string;
+  currency: 'PHP';
+  breakdown: Record<string, string | number>;
+  reason: string;
+  duration_seconds: number;
+  created_at: string;
+}
+export type CashCollectionKind = 'reported' | 'reconciled' | 'disputed';
+export interface CashCollectionEvent {
+  id: string;
+  ride_request_id: string;
+  actor_user_id: string;
+  operation_id: string;
+  kind: CashCollectionKind;
+  amount: number | string;
+  currency: 'PHP';
+  note: string;
   created_at: string;
 }

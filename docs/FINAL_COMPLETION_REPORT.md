@@ -97,7 +97,7 @@ npm run dev:passenger
 npm run dev:driver
 ```
 
-Open `http://localhost:3003`. API: `http://127.0.0.1:55321`. Use `passenger@hatidone.test`, `driver@hatidone.test`, `admin@hatidone.test` (or fleet/partner/corporate), password `DEMO-ONLY-HatidOne!42`. Full steps: DEMO_SCENARIOS.md. `npm run test:http` adds clearly labeled local test records; `npm run demo:reset` restores the fixtures.
+Open `http://localhost:3003`. API: `http://127.0.0.1:55321`. Use `passenger@hatidone.test`, `driver@hatidone.test`, `admin@hatidone.test` (or fleet/partner/corporate), using the individual credentials in ignored private `.local-backend/test-accounts.json` after fresh initialization or an explicitly confirmed disposable reset. Earlier shared credentials are no longer documented or supported; existing running databases were not changed by RC1 implementation. Full steps: DEMO_SCENARIOS.md. `npm run test:http` adds clearly labeled local test records; `npm run demo:reset -- --confirm-local-reset` recreates disposable fixtures and rotates their individual credentials.
 
 ## 13. Remaining manual setup
 

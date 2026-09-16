@@ -1,6 +1,6 @@
 /** Present known failures without exposing database, SQL or provider internals. */
 export function userError(reason: unknown, fallback = "Something went wrong. Check your connection and try again."): string {
-  const message = typeof reason === "string" ? reason : reason instanceof Error ? reason.message : "";
+  const message = typeof reason === "string" ? reason : reason instanceof Error ? reason.message : typeof reason === "object" && reason !== null && "message" in reason && typeof reason.message === "string" ? reason.message : "";
   if (/invalid login credentials/i.test(message)) return "The email or password is incorrect. Please try again.";
   if (/email not confirmed/i.test(message)) return "Confirm your email, then sign in again.";
   if (/already registered|already been registered/i.test(message)) return "An account already uses this email. Try signing in.";

@@ -80,7 +80,7 @@ export function BookingCard({ booking }: { booking: Booking }) {
             booking.vehicle_type.slice(1)}
       </Muted>
       <View style={styles.fare}>
-        <Muted>Estimated ride fare</Muted>
+        <Muted>{booking.quote_status === "accepted" ? "Agreed fare" : booking.quote_status === "offered" ? "Quote awaiting your acceptance" : "Fare awaiting review"}</Muted>
         <Text style={styles.price}>{money(booking.estimated_fare)}</Text>
       </View>
       <Button

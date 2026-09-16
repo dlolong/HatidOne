@@ -1,4 +1,6 @@
 import type { Metadata } from 'next';
 import { AcquisitionPage } from '@/components/marketing/acquisition';
-export const metadata: Metadata = { title:'Drive with HatidOne · Scheduled jobs and transparent earnings',description:'0% default HatidOne driver commission, Going Home and Return Matching for planned Philippine transportation.' };
-export default function DriversPage() { return <AcquisitionPage eyebrow="Driver first" title="Make the next trip work for you." description="0% HatidOne driver commission is the platform default. See the pickup, destination and estimated earnings before accepting a job. Known adjustments and tolls stay visible." points={['Scheduled jobs you can plan around','Trips going your way with Going Home','Return Matching after outbound trips','Transparent fare and earnings breakdowns','A network of verified drivers and vehicles','In-app booking updates and communication']} cta="Apply to drive" href="/driver-application" />; }
+export const metadata: Metadata = { title: 'Apply to drive with HatidOne', description: 'Create your account, complete your driver application and track its review.' };
+export default function DriversPage() {
+  return <AcquisitionPage eyebrow="Drive with HatidOne" title="Your driver application starts here." description="Create your account or use your existing HatidOne login. Complete your details and documents, then submit for review. You can accept trips only after approval." points={['Create or sign in to one HatidOne account', 'Complete personal, vehicle and document details', 'Submit your application and track its review']} cta="Apply to drive" href="/signup?intent=driver" />;
+}

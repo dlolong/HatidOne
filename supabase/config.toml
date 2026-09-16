@@ -35,13 +35,15 @@ file_size_limit = "10MiB"
 [auth]
 enabled = true
 site_url = "http://localhost:3003"
-additional_redirect_urls = ["http://localhost:3003/auth/callback", "hatidone-passenger://**", "hatidone-driver://**", "exp://127.0.0.1:8081/--/**", "exp://127.0.0.1:8082/--/**"]
+additional_redirect_urls = ["http://localhost:3003/auth/callback**", "http://127.0.0.1:3003/auth/callback**", "http://localhost:3003/auth/recovery/callback**", "http://127.0.0.1:3003/auth/recovery/callback**", "hatidone-passenger://**", "hatidone-driver://**", "exp://127.0.0.1:8081/--/**", "exp://127.0.0.1:8082/--/**"]
 jwt_expiry = 3600
 enable_signup = true
 
 [auth.email]
 enable_signup = true
 double_confirm_changes = true
+# Local development policy; restart local services after changing this.
+# Hosted projects have separate Auth settings. The app follows the signup result.
 enable_confirmations = false
 
 [analytics]

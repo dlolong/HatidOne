@@ -1,115 +1,14 @@
-import Link from "next/link";
-import { Dashboard, DashboardCard } from "@/components/dashboard";
-import { requireRole } from "@/lib/auth/session";
-import { createClient } from "@/lib/supabase/server";
-
+import Link from 'next/link';
+import { Dashboard, DashboardCard } from '@/components/dashboard';
+import { getAdminOverview } from '@/lib/admin/data';
+import { dateTime } from '@/lib/operations/data';
 export default async function AdminDashboard() {
-  await requireRole("admin");
-  const client = await createClient();
-  const now = new Date().toISOString();
-  const [unassigned, safety, reviews, active, upcoming] = await Promise.all([
-    client
-      .from("ride_requests")
-      .select("id", { count: "exact", head: true })
-      .in("status", ["requested", "searching", "offered"]),
-    client
-      .from("safety_reports")
-      .select("id", { count: "exact", head: true })
-      .neq("status", "resolved"),
-    client
-      .from("driver_profiles")
-      .select("id", { count: "exact", head: true })
-      .eq("verification_status", "under_review"),
-    client
-      .from("ride_requests")
-      .select("id", { count: "exact", head: true })
-      .in("status", ["driver_en_route", "driver_arrived", "trip_started"]),
-    client
-      .from("ride_requests")
-      .select("id", { count: "exact", head: true })
-      .eq("status", "assigned")
-      .gte("scheduled_at", now),
-  ]);
-  if (
-    [unassigned, safety, reviews, active, upcoming].some(
-      (result) => result.error,
-    )
-  ) {
-    throw new Error(
-      "We couldn’t load operations. Please refresh and try again.",
-    );
-  }
-  return (
-    <Dashboard
-      eyebrow="Operations"
-      title="Keep every ride moving"
-      description="Start with the requests that need your attention, then check trip coverage."
-    >
-      <DashboardCard title="Needs attention">
-        <ul className="attention-list">
-          <li>
-            <Link href="/admin/dispatch">
-              <span>Unassigned bookings</span>
-              <strong>{unassigned.count ?? 0}</strong>
-            </Link>
-          </li>
-          <li>
-            <Link href="/admin/operations#safety">
-              <span>Open safety reports</span>
-              <span>{safety.count ? "Review reports" : "All clear"}</span>
-            </Link>
-          </li>
-          <li>
-            <Link href="/admin/operations#verification">
-              <span>Driver applications to review</span>
-              <strong>{reviews.count ?? 0}</strong>
-            </Link>
-          </li>
-        </ul>
-        {!unassigned.count && !safety.count && !reviews.count && (
-          <p className="muted">
-            Nothing needs attention right now. New requests will appear here.
-          </p>
-        )}
-      </DashboardCard>
-      <DashboardCard title="Live coverage">
-        <div className="form-grid">
-          <div>
-            <p className="stat-value">{active.count ?? 0}</p>
-            <p>Active trips</p>
-          </div>
-          <div>
-            <p className="stat-value">{upcoming.count ?? 0}</p>
-            <p>Upcoming assigned rides</p>
-          </div>
-        </div>
-        <Link
-          className="button button-primary"
-          href="/admin/operations#overview"
-        >
-          View live operations
-        </Link>
-        <p className="muted">
-          Check pickup readiness, driver coverage and trip progress.
-        </p>
-      </DashboardCard>
-      <section
-        className="dashboard-wide button-row"
-        aria-label="Other operations tools"
-      >
-        <Link
-          className="button button-secondary"
-          href="/admin/operations#business"
-        >
-          Business subscriptions
-        </Link>
-        <Link
-          className="button button-secondary"
-          href="/admin/operations#system"
-        >
-          Configuration & audit
-        </Link>
-      </section>
-    </Dashboard>
-  );
+  const data = await getAdminOverview();
+  return <Dashboard eyebrow="Administration" title="Operations overview" description="Review the work waiting on your team, then check ride coverage and driver readiness.">
+    {data.unavailable.length > 0 && <div className="notice dashboard-wide" role="status"><strong>Some overview counts are unavailable.</strong><ul>{data.unavailable.map(item => <li key={item.metric}>{item.label}: {item.reason === 'schema' ? 'A database update is required for this count.' : 'Could not load the latest count. Please retry.'}</li>)}</ul><a href="/admin">Refresh overview</a></div>}
+    <div className="admin-metrics dashboard-wide">{[{label:'Active trips',count:data.active,href:'/admin/operations#overview'},{label:'Upcoming assigned rides',count:data.upcoming,href:'/admin/operations#overview'},{label:'Pickup time passed',count:data.overdue,href:'/admin/operations#overview'},{label:'Applications awaiting review',count:data.reviews,href:'/admin/drivers'}].map(item=><Link className="admin-metric" href={item.href} key={item.label}><span>{item.label}</span><strong className={item.count === null ? 'admin-metric-unavailable' : undefined}>{item.count ?? 'Unavailable'}</strong><small>View details →</small></Link>)}</div>
+    <DashboardCard title="Needs attention"><ul className="attention-list"><li><Link href="/admin/operations#overview"><span>Operator quotes needed</span><strong>{data.quotes ?? 'Unavailable'}</strong></Link></li><li><Link href="/admin/dispatch"><span>Unassigned bookings</span><strong>{data.unassigned ?? 'Unavailable'}</strong></Link></li><li><Link href="/admin/operations#safety"><span>Open safety reports</span><strong>{data.safety ?? 'Unavailable'}</strong></Link></li><li><Link href="/admin/drivers"><span>Submitted driver applications</span><strong>{data.reviews ?? 'Unavailable'}</strong></Link></li></ul>{data.unavailable.length===0&&data.unassigned===0&&data.quotes===0&&data.safety===0&&data.reviews===0&&data.overdue===0&&<p className="muted">No work waiting in these queues.</p>}{data.overdue!==null&&data.overdue>0&&<p className="notice">{data.overdue} assigned pickup time(s) have passed. Check readiness and contact the participants; this count does not establish a no-show.</p>}</DashboardCard>
+    <DashboardCard title="Your workspace"><p>Signed in as <strong>{[data.profile.first_name,data.profile.last_name].filter(Boolean).join(' ') || data.profile.email}</strong>.</p><div className="admin-shortcuts"><Link href="/admin/drivers">Review driver applications →</Link><Link href="/admin/dispatch">Assign drivers to rides →</Link><Link href="/admin/operations#business">Business subscriptions →</Link><Link href="/admin/operations#system">Configuration and audit →</Link><Link href="/account">Administrator account →</Link></div></DashboardCard>
+    <p className="muted dashboard-wide">Loaded {dateTime(data.now)} · Asia/Manila. Reload for current counts.</p>
+  </Dashboard>;
 }

@@ -34,7 +34,19 @@
     "mobile:passenger:ios:build": "npm --workspace apps/passenger-mobile run ios:build",
     "mobile:passenger:android:build": "npm --workspace apps/passenger-mobile run android:build",
     "mobile:driver:ios:build": "npm --workspace apps/driver-mobile run ios:build",
-    "mobile:driver:android:build": "npm --workspace apps/driver-mobile run android:build"
+    "mobile:driver:android:build": "npm --workspace apps/driver-mobile run android:build",
+    "start": "npm --workspace apps/web run start",
+    "check:env": "node scripts/check-environment.mjs",
+    "check:env:release": "node scripts/check-environment.mjs --release",
+    "test:release-safety": "node --test scripts/lib/*.test.mjs",
+    "build:release": "node scripts/check-environment.mjs --release --web && npm run build",
+    "verify:rc1": "node scripts/verify-rc1.mjs",
+    "verify:code": "node scripts/verify-rc1.mjs --code-only",
+    "mobile:passenger:preview:check": "npm --workspace apps/passenger-mobile run preview:check",
+    "mobile:driver:preview:check": "npm --workspace apps/driver-mobile run preview:check",
+    "mobile:preview:prepare": "npm run check:env:release && npm run mobile:passenger:preview:check && npm run mobile:driver:preview:check",
+    "check:build-secrets": "node scripts/scan-built-output.mjs",
+    "test:mobile-preview": "node --test packages/mobile/scripts/check-preview.test.cjs"
   },
   "engines": {
     "node": ">=22.13.0 <23 || >=24"

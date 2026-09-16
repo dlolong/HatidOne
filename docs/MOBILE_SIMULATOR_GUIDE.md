@@ -1,3 +1,103 @@
+# RC1 installable preview and verification (September 8, 2026)
+
+The release apps call authenticated Supabase RPCs directly with the signed-in session. They do not need Next.js cookies or a running laptop. A deployed, migrated staging Supabase backend is still an **owner-controlled missing prerequisite**, not a verified deployment. Mobile booking is now scheduled/address-only operator review → versioned quote acceptance → assignment/reconfirmation → PIN trip lifecycle → separately reported/reconciled cash. Maps, payment gateway, push, automatic emergency dispatch, and auth email/deep-link delivery are not verified integrations.
+
+Both apps preserve their native identifiers, installed Expo **54.0.37**, React Native **0.81.5**, and installed Expo Router **6.0.24**. RC1 has not upgraded dependencies. Native `android/` and `ios/` folders were absent at this audit; no prebuild/regeneration or signing was performed. Historical prebuild evidence later in this guide is not an existing native artifact.
+
+| RC1 check actually executed | Result |
+| --- | --- |
+| Both workspace `typecheck` commands | PASS |
+| Both workspace `lint` commands | PASS |
+| Both workspace `check` / `expo install --check` | PASS, dependencies up to date |
+| `node --test packages/mobile/scripts/check-preview.test.cjs` | PASS, 8 preview/recovery URL guard tests; no backend contacted |
+| Both workspace `preview:check` commands using existing local configuration | BLOCKED as intended: explicit staging environment missing; local environment files preserved |
+| `npm run mobile:doctor` | BLOCKED, exit 1: Node 23.2.0 unsupported; full Xcode/simctl absent; Java 11; Android API/build tools 36 missing |
+| Android Hermes JavaScript exports for both apps | PASS packaging only; development bundles contain local endpoints and cannot serve as release artifacts |
+| Native compilation / APK / IPA / simulator `.app` | NOT RUN / no artifact produced |
+| Installed apps, secure session persistence, GPS, offline/restart/account-switch, same-booking no-laptop run | BLOCKED by toolchain/devices and authorized deployed backend |
+
+These are distinct from application runtime verification. No native artifact, signing identity, hosted URL, or native runtime success is asserted.
+
+Executed packaging commands (development configuration, not release):
+
+```sh
+EXPO_PUBLIC_APP_ENVIRONMENT=development npm exec --workspace apps/passenger-mobile -- expo export --platform android --output-dir /tmp/hatidone-rc1-passenger-android
+EXPO_PUBLIC_APP_ENVIRONMENT=development npm exec --workspace apps/driver-mobile -- expo export --platform android --output-dir /tmp/hatidone-rc1-driver-android
+```
+
+Passenger exported 1,060 modules / 3,246,017-byte Hermes bundle; Driver 1,070 modules / 3,285,259-byte bundle, with 25 assets each. These temporary exports came from commit `c8b040c69d88ab5d65f373fc0914e28d0677afb9` plus the uncommitted RC1 working tree, public local backend config, Passenger 0.1.0 / Driver 1.0.0. Byte scans found zero service-role JWT/private-key/secret-key credential patterns; local development endpoint occurrences were 3 and 4 respectively. They are explicitly unsuitable for distribution and cannot be installed. The shared safe-area banner received a subsequent UI adjustment; final integrated typechecks remain the source check, not a claim these exports are signed final release binaries.
+
+## Preview preparation and environment
+
+Use supported Node 22.13+ in the 22 line or Node 24+, with the repository's existing npm workspace installation. Complete an owner-authorized staging backend deployment/migration first. Each app's public configuration must select `EXPO_PUBLIC_APP_ENVIRONMENT=staging`, the same deployed HTTPS `EXPO_PUBLIC_SUPABASE_URL`, and its **public** `EXPO_PUBLIC_SUPABASE_ANON_KEY`. Both apps optionally use deployed HTTPS `EXPO_PUBLIC_WEB_URL` for browser password recovery; Driver also uses it for document onboarding. Do not copy server secrets into either app. `EXPO_PUBLIC_DEMO_MODE`/mock providers must be absent or disabled in preview.
+
+```sh
+npm --workspace apps/passenger-mobile run preview:check
+npm --workspace apps/driver-mobile run preview:check
+node --test packages/mobile/scripts/check-preview.test.cjs
+```
+
+The guard rejects local/private/tunnel endpoints, missing environment/key, privileged public variables, and enabled mocks. It validates configuration only: the owner must verify the selected host is the intended staging project. It cannot prove a project's data classification. Build-time public variables are bundled; changing them requires a fresh build. Local `.env` files are intentionally not rewritten by preparation.
+
+`eas.json` in **each app** contains development (development client), preview (internal distribution, bundled JS, Android APK), preview-simulator (iOS Release simulator), and production (store distribution, Android AAB) profiles. Preview selects staging; production requires explicit production configuration. EAS project IDs and credentials are not invented.
+
+## Owner-run native build routes
+
+The following commands are prepared, **not executed**. Signing/account/toolchain setup needs the owner's environment-specific approval. Inspect any native directories added after this audit before prebuild; do not use `prebuild --clean` over maintained code.
+
+For a local build after tooling and staging public configuration are ready:
+
+```sh
+npm --workspace apps/passenger-mobile run preview:android -- --device YOUR_DEVICE_SERIAL
+npm --workspace apps/driver-mobile run preview:android -- --device YOUR_DEVICE_SERIAL
+# On a Mac with full Xcode and an installed simulator:
+npm --workspace apps/passenger-mobile run preview:ios -- --device YOUR_SIMULATOR_UDID
+npm --workspace apps/driver-mobile run preview:ios -- --device YOUR_SIMULATOR_UDID
+```
+
+These use Expo's Release configuration / Android release variant with no Metro bundler. Expo can generate missing native folders during a local build; inspect generated projects before distributing. Android's generated release configuration may use a development/debug signing key: a locally compiled release-variant APK is **not evidence of approved release signing**. Obtain and configure owner-authorized release signing before sharing a pilot APK. Never commit, generate for distribution, or upload signing material during unapproved preparation.
+
+Optional EAS workflow, with an owner-installed EAS CLI and owner-linked existing project/account:
+
+```sh
+cd apps/passenger-mobile
+eas build --platform android --profile preview
+# Repeat from apps/driver-mobile for its separate project.
+# Simulator-only binary, cannot install on an iPhone:
+eas build --platform ios --profile preview-simulator
+# Physical iPhone internal distribution: requires Apple membership, signing,
+# registered test devices and an owner-approved provisioning workflow.
+eas build --platform ios --profile preview
+```
+
+EAS cloud builds may create/use remote signing credentials and consume build resources; these commands are owner actions, not automatic repository checks. `eas build --local` is optional but still needs EAS account/project authorization and local toolchains. Plain local Expo builds above keep an EAS account optional. Follow [Expo local builds](https://docs.expo.dev/build-reference/local-builds/) and [internal distribution](https://docs.expo.dev/build/internal-distribution/); the latter distinguishes directly installable APKs from Play-distributed AABs and iOS simulator from ad hoc device distribution.
+
+After every real artifact, record its actual path, Passenger/Driver identity, platform, app version/build number, staging backend project identity (no credentials), commit SHA plus dirty-state note, signing verification result and checksum in `docs/rc1/RELEASE_REPORT.md`. Locate the produced artifact from build output; do not report an expected path as a file that exists. Increment store version/build numbers only against the owner's known registered release history.
+
+## Required no-laptop acceptance run
+
+Use individually invited fictional staging passenger, approved driver and operator accounts. The optional Forgot password button opens the configured web `/forgot-password` route; it exchanges no native tokens and reports no email-delivery success. Missing or unsafe web configuration displays recovery unavailable. Email confirmation/password-reset delivery and auth callback links remain NOT RUN; RC1 supports sign-in to individually provisioned accounts without weakening verification. Booking/trip links require sign-in and backend RLS; they contain no public tracking capability. Never paste access or refresh tokens into links. Invite-only staging hides passenger self-signup; backend signup policy remains an owner setting.
+
+1. Install both signed preview apps, stop both Metro processes and the local web/API. Use the deployed Admin/Fleet web and the same staging backend.
+2. Passenger requests tomorrow's scheduled ride using unambiguous Manila time and fictional addresses. Operations reviews the route and quote. Passenger accepts the displayed version, then operations assigns an eligible driver. Driver reconfirms; compare both views.
+3. Driver heads to pickup, arrives and tests a wrong PIN, then the passenger-provided PIN. Complete the trip and confirm it remains unpaid until cash is separately reported and reconciled. Compare final histories.
+4. Lose connectivity during request/collection submission and after server commit before response. Restore connectivity and use Check previous request / refresh collection history. Persisted actor-scoped operation identifiers prevent blind new submissions. Trip actions refetch after failures; no action is automatically replayed on reconnect. Repeat app restart mid-trip.
+5. Logout, sign into a different account, and attempt the old booking link. Verify no previous user's cached booking, PIN, chat or driver state appears. SecureStore persistence and revoked-session handling need physical/native checks.
+6. Deny foreground location, then enable it in Settings and retry Update GPS. Check timestamps become stale when updates stop. Tracking is foreground only; background/terminated-app delivery is not promised.
+
+Permission-only resets on the selected dedicated simulator/device (prepared, not executed during RC1):
+
+```sh
+xcrun simctl privacy YOUR_SIMULATOR_UDID reset location ph.hatidone.passenger
+xcrun simctl privacy YOUR_SIMULATOR_UDID reset location ph.hatidone.driver
+adb -s YOUR_DEVICE_SERIAL shell pm revoke ph.hatidone.driver android.permission.ACCESS_FINE_LOCATION
+adb -s YOUR_DEVICE_SERIAL shell pm revoke ph.hatidone.driver android.permission.ACCESS_COARSE_LOCATION
+```
+
+The development commands, simultaneous Metro ports, local networking and cache troubleshooting below remain available for isolated development. Simulator GPS injection is fictional test input, not verified movement on a real passenger trip.
+
+---
+
 # HatidOne mobile simulator guide
 
 HatidOne uses Expo SDK 54, React Native 0.81.5, and local Expo development builds. Passenger and Driver are separate applications and can coexist. No EAS cloud account, maps key, push service, or payment provider is required.
@@ -13,7 +113,7 @@ The native apps include `expo-dev-client ~6.0.21`, the [SDK 54 supported version
 
 ## Audited machine and honest launch status
 
-Audit date: September 7, 2026.
+Historical audit date: September 7, 2026. The RC1 recheck below supersedes this table where noted.
 
 | Check | Actual result |
 | --- | --- |
@@ -219,8 +319,8 @@ Use approximate Makati, NAIA, Tagaytay, or other existing local reference coordi
 ## Session persistence and flow checks
 
 1. Sign in using a local seeded passenger or driver account, then close and reopen the app. Verify the session restores without re-entering a password.
-2. Passenger: choose pickup/destination, schedule, vehicle, server fare, and confirm. Open Bookings and the assigned-driver card; verify the pickup PIN appears only when appropriate.
-3. Driver: set Available, accept an eligible offer, open Trips, head to pickup, arrive, enter the passenger’s PIN, start, complete, and review Earnings.
+2. Passenger: enter addresses, Manila schedule and vehicle; request manual review. Admin issues a quote; passenger accepts its exact version; operations assigns an eligible driver. Confirm that request acknowledgment and driver reconfirmation appear as separate states.
+3. Driver: set Available, open the manually assigned trip and reconfirm pickup. Head to pickup, arrive, enter the passenger’s PIN, start and complete. Record cash actually received; admin reconciles separately. Compare collection histories and Earnings.
 4. Exchange an in-app pickup message; inspect Activity/unread state. Open the same booking from an unrelated account and verify access is denied.
 5. Toggle Going Home and review route-compatible offers. Rebook a completed passenger trip.
 6. At a small iPhone and Android screen size, focus the last form field: verify the keyboard does not cover the active field or action. Check bottom tabs, safe areas, scrolling, and large text settings.

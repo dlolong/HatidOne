@@ -32,7 +32,7 @@ export function RideChat({ rideRequestId }: { rideRequestId: string }) {
     });
     if (read.error) throw new Error(read.error.message);
     return (result.data as Message[]).reverse();
-  }, [client, rideRequestId]);
+  }, [client, rideRequestId, session?.user.id]);
   const { reload } = resource;
   useEffect(() => {
     if (!client) return;
@@ -48,10 +48,8 @@ export function RideChat({ rideRequestId }: { rideRequestId: string }) {
         },
         () => void reload(),
       )
-      .subscribe();
-    const timer = setInterval(() => void reload(), 15000);
+      .subscribe((status) => { if (status === "SUBSCRIBED") void reload(); });
     return () => {
-      clearInterval(timer);
       void client.removeChannel(channel);
     };
   }, [client, rideRequestId, reload]);

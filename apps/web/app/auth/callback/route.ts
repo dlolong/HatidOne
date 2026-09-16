@@ -1,21 +1,29 @@
-import { safeReturnPath } from '@/lib/auth/redirects';
+import { authCallbackUrl } from '@/lib/auth/redirects';
+import { journeyDestination, journeyNotice } from '@/lib/auth/journey';
 import { NextResponse, type NextRequest } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 
 export async function GET(request: NextRequest) {
-  const code = request.nextUrl.searchParams.get('code');
-  const destination = request.nextUrl.clone();
-
-  if (code) {
-    const supabase = await createClient();
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
-    if (!error) {
-      return NextResponse.redirect(new URL(safeReturnPath(request.nextUrl.searchParams.get('next')), request.nextUrl.origin));
+  const configured = authCallbackUrl(process.env.NEXT_PUBLIC_SITE_URL);
+  if (!configured) return NextResponse.json({ error: 'Account confirmation is unavailable.' }, { status: 503 });
+  const query = request.nextUrl.searchParams;
+  let valid = false;
+  try {
+    const code = query.get('code');
+    if (code) {
+      const client = await createClient({ requireCookieWrite: true });
+      const flowId = query.get('sb_flow_id');
+      const { data, error } = await client.auth.exchangeCodeForSession(code, flowId ? { flowId } : undefined);
+      // Recovery has its own isolated session and must use its own callback.
+      if (!error && data.session && (!('redirectType' in data) || data.redirectType !== 'recovery')) {
+        const { data: { user }, error: userError } = await client.auth.getUser();
+        valid = !userError && !!user;
+      }
     }
-  }
-
-  destination.pathname = '/login';
-  destination.search = '';
-  destination.searchParams.set('error', 'The confirmation link is invalid or has expired.');
-  return NextResponse.redirect(destination);
+  } catch { /* Invalid/expired/cross-browser PKCE links share an actionable recovery. */ }
+  const target = valid ? journeyDestination(query.get('intent'), query.get('next')) : journeyNotice('/login', query.get('intent'), query.get('next'), 'error', 'The confirmation link is invalid, expired, or opened in another browser. If confirmed, sign in here. Otherwise request a new confirmation link and open it in the browser that requested it.');
+  const response = NextResponse.redirect(new URL(target, configured));
+  response.headers.set('Cache-Control', 'no-store');
+  response.headers.set('Referrer-Policy', 'no-referrer');
+  return response;
 }

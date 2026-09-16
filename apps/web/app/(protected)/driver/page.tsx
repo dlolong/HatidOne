@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { Dashboard, DashboardCard } from '@/components/dashboard';
 import { SubmitButton } from '@/components/submit-button';
 import { requireRole } from '@/lib/auth/session';
@@ -15,6 +16,7 @@ function money(value: number | string | null): string {
 export default async function DriverDashboard({ searchParams }: DriverDashboardProps) {
   await requireRole('driver');
   const [dispatch, alerts] = await Promise.all([getDriverDispatchData(), searchParams]);
+  if (dispatch.driver?.verification_status !== 'verified') redirect('/driver-application');
   return (
     <Dashboard eyebrow="Driver workspace" title="Driver dashboard" description="Complete verification before becoming eligible for ride offers.">
       {alerts.error ? <p className="notice notice-error dashboard-wide" role="alert">{alerts.error}</p> : null}

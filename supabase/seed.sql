@@ -1,9 +1,15 @@
--- LOCAL DEVELOPMENT ONLY. Fictional accounts; shared password is DEMO-ONLY-HatidOne!42.
+-- LOCAL DEVELOPMENT ONLY. Fictional accounts use individual random passwords.
 -- Supabase CLI local reset invokes this file. Never run against a production project.
 begin;
+-- Explicit opt-in is injected only by the disposable SQL harness/local CLI staging.
+do $$ begin
+ if current_setting('hatidone.allow_fictional_seed',true) is distinct from 'true' then raise exception 'fictional seed requires explicit disposable/local opt-in'; end if;
+end $$;
+update private.release_environment set environment=case when current_database() in ('hatidone_test','hatidone_upgrade') then 'test' else 'demo' end where id;
+
 insert into auth.users(id,instance_id,aud,role,email,encrypted_password,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at,confirmation_token,recovery_token,email_change_token_new,email_change)
 select ('10000000-0000-4000-8000-'||lpad(n::text,12,'0'))::uuid,'00000000-0000-0000-0000-000000000000','authenticated','authenticated',email,
- private.hash_pin('DEMO-ONLY-HatidOne!42',private.pin_salt()),now(),'{"provider":"email","providers":["email"]}',jsonb_build_object('first_name',name,'last_name','Demo'),now(),now(),'','','',''
+ private.hash_pin(coalesce(nullif(current_setting('hatidone.seed_passwords',true),'')::jsonb->>email,encode(private.secure_random_bytes(32),'hex')),private.pin_salt()),now(),'{"provider":"email","providers":["email"]}',jsonb_build_object('first_name',name,'last_name','Demo'),now(),now(),'','','',''
 from (values(1,'passenger@hatidone.test','Passenger'),(2,'driver@hatidone.test','Verified Driver'),(3,'pending-driver@hatidone.test','Pending Driver'),(4,'admin@hatidone.test','Operations'),(5,'fleet@hatidone.test','Fleet Owner'),(6,'partner@hatidone.test','Resort Partner'),(7,'corporate@hatidone.test','Corporate Manager'),(8,'rider@hatidone.test','Employee'),(9,'backup-driver@hatidone.test','Backup Driver'),(10,'outsider@hatidone.test','Unrelated Passenger')) users(n,email,name)
 on conflict(id) do nothing;
 insert into auth.identities(id,user_id,provider_id,provider,identity_data,created_at,updated_at)

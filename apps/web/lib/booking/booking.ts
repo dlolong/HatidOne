@@ -15,11 +15,7 @@ export function parseCoordinate(value: unknown, minimum: number, maximum: number
     : null;
 }
 
-export function parsePhilippineSchedule(value: unknown): Date | null {
-  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value)) return null;
-  const parsed = new Date(`${value}:00+08:00`);
-  return Number.isNaN(parsed.valueOf()) ? null : parsed;
-}
+export { parseManilaSchedule as parsePhilippineSchedule } from '@hatidone/core';
 
 export function canPassengerCancel(status: string): boolean {
   return CANCELLABLE_STATUSES.some((candidate) => candidate === status);

@@ -1,0 +1,11 @@
+{
+  "policy": "retry",
+  "passed": 4,
+  "complete": true,
+  "results": [
+    "retry: actual application initialization failure leaves authenticated existing account and no partial draft",
+    "retry: failure offers action using current session, without another signup or login",
+    "retry: restored application service lets same user finish setup with one draft",
+    "retry: failed signup produces no authenticated success"
+  ]
+}

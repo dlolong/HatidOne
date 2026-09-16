@@ -10,6 +10,8 @@ export function peso(value: number | string | null | undefined): string {
 export function schedule(value: string | null): string {
   return value
     ? new Date(value).toLocaleString("en-PH", {
+        timeZone: "Asia/Manila",
+        timeZoneName: "short",
         month: "short",
         day: "numeric",
         hour: "numeric",
@@ -33,16 +35,17 @@ export function dayGroup(
   now = new Date(),
 ): "Today" | "Tomorrow" | "Upcoming" {
   if (!value) return "Today";
+  const dateKey = (date: Date) => new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila", year: "numeric", month: "2-digit", day: "2-digit" }).format(date);
   const day = new Date(value);
-  if (day.toDateString() === now.toDateString()) return "Today";
+  if (dateKey(day) === dateKey(now)) return "Today";
   const tomorrow = new Date(now);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  return day.toDateString() === tomorrow.toDateString()
+  tomorrow.setTime(tomorrow.getTime() + 86400000);
+  return dateKey(day) === dateKey(tomorrow)
     ? "Tomorrow"
     : "Upcoming";
 }
 export function localDateInput(date: Date): string {
-  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  const local = new Date(date.getTime() + 8 * 3600000);
   return local.toISOString().slice(0, 16);
 }
 
@@ -55,6 +58,7 @@ export function statusTone(value: string): "neutral" | "success" | "warning" | "
 export function driverError(reason: unknown, fallback = "We couldn’t load or update your driver details. Check your connection, refresh and try again."): string {
   const text = reason instanceof Error ? reason.message : typeof reason === "string" ? reason : "";
   const messages: [RegExp, string][] = [
+    [/updates unavailable|unresolved|refresh authoritative/i, "Action outcome needs checking. Refresh your trip and collection history before trying again."],
     [/incorrect passenger pin/i, "That PIN did not match. Ask the passenger to check their booking and try again. Repeated attempts temporarily lock pickup."],
     [/pin temporarily locked/i, "PIN checks are temporarily locked. Wait a few minutes, then ask the passenger to check their PIN."],
     [/too early to start/i, "This pickup is more than 30 minutes away. You can start the trip closer to its scheduled time."],

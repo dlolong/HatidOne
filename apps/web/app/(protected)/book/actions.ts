@@ -39,23 +39,14 @@ export async function createBooking(formData: FormData) {
   if (!requestId || !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(requestId)) {
     fail('The booking form expired. Refresh and try again.');
   }
-  if (!pickupAddress || !dropoffAddress || pickupLat === null || pickupLng === null
-    || dropoffLat === null || dropoffLng === null || !scheduledAt || !isBookingVehicleType(vehicleType)) {
-    fail('Review the addresses, coordinates, schedule, and vehicle type.');
+  if (!pickupAddress || !dropoffAddress || !scheduledAt || !isBookingVehicleType(vehicleType)) {
+    fail('Review the addresses, schedule, and vehicle type.');
   }
   if (scheduledAt.getTime() < Date.now() + 30 * 60 * 1000) fail('Schedule the pickup at least 30 minutes from now.');
   if (scheduledAt.getTime() > Date.now() + 180 * 24 * 60 * 60 * 1000) fail('Bookings can be scheduled up to 180 days ahead.');
   if (passengerNotes.length > 500) fail('Passenger notes must be 500 characters or fewer.');
 
   const supabase = await createClient();
-  try {
-    await createPlaceholderFareCalculator(supabase).quote({
-      pickupLat, pickupLng, dropoffLat, dropoffLng, vehicleType,
-    });
-  } catch {
-    fail('A fare estimate could not be calculated for this route.');
-  }
-
   const { data, error } = await supabase.rpc('create_transport_request', {
     p_payload: {
       client_request_id: requestId, pickup_address: pickupAddress, pickup_lat: pickupLat, pickup_lng: pickupLng,

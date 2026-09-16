@@ -78,7 +78,7 @@ export default function Home() {
           label="Add pickup & destination"
           onPress={() => router.push("/book")}
         />
-        <Muted>Scheduled pickup · Clear fare before you book</Muted>
+        <Muted>Scheduled pickup · Operator quote before confirmation</Muted>
       </Card>
       <Row>
         {[
@@ -132,7 +132,7 @@ export default function Home() {
         </Card>
       )}
       {process.env.EXPO_PUBLIC_DEMO_MODE === "true" && (
-        <Muted>Pilot service · Route and toll estimates may vary.</Muted>
+        <Muted>Isolated demo · Fictional software tests only.</Muted>
       )}
     </Screen>
   );

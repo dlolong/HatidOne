@@ -23,6 +23,9 @@ function AppContent() {
   if (!auth.session)
     return (
       <AuthScreen
+        webUrl={process.env.EXPO_PUBLIC_WEB_URL}
+        environment={process.env.EXPO_PUBLIC_APP_ENVIRONMENT}
+        allowSignUp={["development", "demo", "test"].includes(process.env.EXPO_PUBLIC_APP_ENVIRONMENT ?? "")}
         title="HatidOne"
         subtitle="Your next ride, reliably arranged."
       />
@@ -61,7 +64,7 @@ function AppContent() {
   return (
     <>
       <StatusBar style="dark" />
-      <Stack screenOptions={{ headerShown: false }}>
+      <Stack key={auth.session.user.id} screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen
           name="book"
@@ -75,6 +78,7 @@ function AppContent() {
 export default function Layout() {
   return (
     <AuthProvider
+      environment={process.env.EXPO_PUBLIC_APP_ENVIRONMENT}
       supabaseUrl={process.env.EXPO_PUBLIC_SUPABASE_URL}
       supabaseAnonKey={process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY}
     >

@@ -13,7 +13,7 @@ import {
 } from "@hatidone/mobile";
 import { Feedback, MoneyLine, Empty } from "../../src/components";
 import { useDriver } from "../../src/driver-context";
-import { schedule, peso } from "../../src/format";
+import { schedule } from "../../src/format";
 export default function EarningsScreen() {
   const { data, loading, reload } = useDriver();
   const [period, setPeriod] = useState("Today");
@@ -21,20 +21,14 @@ export default function EarningsScreen() {
     () =>
       (data?.earnings ?? []).filter((row) => {
         if (period === "All time") return true;
-        const start = new Date();
-        start.setHours(0, 0, 0, 0);
+        const manila = new Date(Date.now() + 8 * 3600000);
+        const start = new Date(Date.UTC(manila.getUTCFullYear(), manila.getUTCMonth(), manila.getUTCDate()) - 8 * 3600000);
         if (period === "This week")
-          start.setDate(start.getDate() - ((start.getDay() + 6) % 7));
+          start.setTime(start.getTime() - ((manila.getUTCDay() + 6) % 7) * 86400000);
         return Date.parse(row.completed_at) >= start.getTime();
       }),
     [data, period],
   );
-  const total = (
-    field: "gross_fare" | "platform_commission" | "driver_earnings",
-  ): number | null =>
-    rows.some((row) => row[field] === null)
-      ? null
-      : rows.reduce((sum, row) => sum + Number(row[field] ?? 0), 0);
   return (
     <Screen scrollKey={period} refreshing={loading} onRefresh={() => void reload()}>
       <Muted>TRANSPARENT EARNINGS</Muted>
@@ -51,21 +45,11 @@ export default function EarningsScreen() {
         ))}
       </Row>
       <Card>
-        <Muted>Estimated earnings · {period.toLowerCase()}</Muted>
-        <Text style={{ fontSize: 36, fontWeight: "600", color: theme.text }}>{peso(total("driver_earnings"))}</Text>
-        <Muted>{rows.length} completed trip{rows.length === 1 ? "" : "s"}</Muted>
-        <MoneyLine label="Gross fare" value={total("gross_fare")} />
-        <MoneyLine
-          label="HatidOne commission"
-          value={total("platform_commission")}
-        />
-        <MoneyLine
-          label="Estimated take-home"
-          value={total("driver_earnings")}
-          strong
-        />
+        <Muted>Completed trip records · {period.toLowerCase()}</Muted>
+        <Text style={{ fontSize: 36, fontWeight: "600", color: theme.text }}>{rows.length}</Text>
+        <Muted>Each trip below shows its server-recorded fare, commission and earnings.</Muted>
         <Muted>
-          No separate adjustments recorded. Tolls, taxes and collection costs may affect the final amount. This is not a payout balance.
+          Cash collection and reconciliation are shown in each completed trip. Tolls, taxes and collection costs may affect the final amount. This is not a payout balance.
         </Muted>
       </Card>
 

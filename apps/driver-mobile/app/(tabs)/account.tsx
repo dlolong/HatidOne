@@ -9,6 +9,7 @@ import {
   Row,
   Chip,
   Button,
+  AccountDeletionRequest,
   Field,
   Notice,
   useAuth,
@@ -26,7 +27,7 @@ function DocumentCard({ document }: { document: Document }) {
     document.expires_on === null
       ? null
       : Math.ceil(
-          (Date.parse(`${document.expires_on}T23:59:59`) - Date.now()) /
+          (Date.parse(`${document.expires_on}T23:59:59+08:00`) - Date.now()) /
             86400000,
         );
   const expired = daysRemaining !== null && daysRemaining < 0;
@@ -128,7 +129,7 @@ export default function AccountScreen() {
         !latitude.trim() ||
         !longitude.trim() ||
         !validCoordinates(coordinates) ||
-        !Number.isFinite(Date.parse(departure)))
+        !Number.isFinite(Date.parse(`${departure}+08:00`)))
     ) {
       setError(
         "For Going Home, enter a destination, valid coordinates and a departure time.",
@@ -152,8 +153,8 @@ export default function AccountScreen() {
         longitude.trim() && validCoordinates(coordinates)
           ? coordinates.longitude
           : null,
-      going_home_departure: Number.isFinite(Date.parse(departure))
-        ? new Date(departure).toISOString()
+      going_home_departure: Number.isFinite(Date.parse(`${departure}+08:00`))
+        ? new Date(`${departure}+08:00`).toISOString()
         : null,
     };
     await run(
@@ -210,7 +211,7 @@ export default function AccountScreen() {
       <Feedback />
       {error && <Notice tone="error">{error}</Notice>}
       <Row>{["Profile", "Going Home", "Preferences", "Location", "Documents"].map((value) => <Chip key={value} label={value} selected={section === value} onPress={() => setSection(value)} />)}</Row>
-      {section === "Profile" && <><Card>
+      {section === "Profile" && <><AccountDeletionRequest /><Card>
         <Muted>{profile?.email}</Muted>
         <Muted>{profile?.phone ?? "Phone not provided"}</Muted>
         <Row>

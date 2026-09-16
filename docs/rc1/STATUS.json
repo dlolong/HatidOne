@@ -1,0 +1,376 @@
+{
+  "release": "RC1",
+  "updated_on": "2026-09-08",
+  "base_commit": "c8b040c69d88ab5d65f373fc0914e28d0677afb9",
+  "working_tree": "uncommitted implementation; no release commit/tag created",
+  "objective_status": "BLOCKED",
+  "code_readiness": {
+    "status": "PASS",
+    "scope": "independently verified manual scheduled-ride repository/SQL slice",
+    "auth_delta": "PASS: independent18 recovery tests,8 mobile guard tests,3 anonymous recovery HTTP smoke checks; final web61 tests/typecheck/lint/build and client scan passed"
+  },
+  "installable_beta": {
+    "status": "BLOCKED",
+    "reason": "No authorized deployed RC1 backend, native preview artifacts, three-client UI lifecycle or installed no-Metro test"
+  },
+  "operational_pilot": {
+    "status": "BLOCKED",
+    "reason": "Beta, recovery, retention/privacy, support/staffing, transport/geography/insurance/fare authority gates unresolved"
+  },
+  "public_launch": {
+    "status": "BLOCKED",
+    "reason": "Operational gates, distribution/signing/accounts, approved deletion/privacy/support and store review outstanding"
+  },
+  "authorization": {
+    "repository_implementation": true,
+    "disposable_local_checks": true,
+    "remote_changes_performed": false,
+    "existing_databases_reset": false,
+    "signing_material_generated": false,
+    "accounts_provisioned_remotely": false,
+    "real_passengers_transported": false,
+    "commits_or_pushes": false,
+    "existing_local_credentials_changed": false
+  },
+  "changed_files": [
+    ".env.example",
+    ".github/workflows/rc1.yml",
+    "README.md",
+    "apps/driver-mobile/.env.example",
+    "apps/driver-mobile/app.config.js",
+    "apps/driver-mobile/app/(tabs)/account.tsx",
+    "apps/driver-mobile/app/(tabs)/earnings.tsx",
+    "apps/driver-mobile/app/_layout.tsx",
+    "apps/driver-mobile/app/trip/[id].tsx",
+    "apps/driver-mobile/eas.json",
+    "apps/driver-mobile/package.json",
+    "apps/driver-mobile/src/CashCollection.tsx",
+    "apps/driver-mobile/src/components.tsx",
+    "apps/driver-mobile/src/data.ts",
+    "apps/driver-mobile/src/driver-context.tsx",
+    "apps/driver-mobile/src/format.ts",
+    "apps/driver-mobile/src/matching.ts",
+    "apps/passenger-mobile/.env.example",
+    "apps/passenger-mobile/app.config.js",
+    "apps/passenger-mobile/app/(tabs)/account.tsx",
+    "apps/passenger-mobile/app/(tabs)/index.tsx",
+    "apps/passenger-mobile/app/_layout.tsx",
+    "apps/passenger-mobile/app/book.tsx",
+    "apps/passenger-mobile/app/booking/[id].tsx",
+    "apps/passenger-mobile/eas.json",
+    "apps/passenger-mobile/package.json",
+    "apps/passenger-mobile/src/components.tsx",
+    "apps/passenger-mobile/src/data.ts",
+    "apps/web/app/(protected)/account/actions.ts",
+    "apps/web/app/(protected)/account/page.tsx",
+    "apps/web/app/(protected)/admin/dispatch/actions.test.ts",
+    "apps/web/app/(protected)/admin/dispatch/actions.ts",
+    "apps/web/app/(protected)/admin/dispatch/page.tsx",
+    "apps/web/app/(protected)/admin/operations/actions.ts",
+    "apps/web/app/(protected)/admin/operations/page.tsx",
+    "apps/web/app/(protected)/book/actions.ts",
+    "apps/web/app/(protected)/booking/[id]/actions.ts",
+    "apps/web/app/(protected)/booking/[id]/page.tsx",
+    "apps/web/app/(protected)/error.tsx",
+    "apps/web/app/(protected)/fleet/page.tsx",
+    "apps/web/app/(protected)/organizations/actions.ts",
+    "apps/web/app/api/health/route.ts",
+    "apps/web/app/api/readiness/route.test.ts",
+    "apps/web/app/api/readiness/route.ts",
+    "apps/web/app/auth/recovery/actions.test.ts",
+    "apps/web/app/auth/recovery/actions.ts",
+    "apps/web/app/auth/recovery/callback/route.test.ts",
+    "apps/web/app/auth/recovery/callback/route.ts",
+    "apps/web/app/forgot-password/page.tsx",
+    "apps/web/app/login/page.tsx",
+    "apps/web/app/reset-password/page.tsx",
+    "apps/web/app/routes/[slug]/page.tsx",
+    "apps/web/components/app-shell.tsx",
+    "apps/web/components/booking-planner.tsx",
+    "apps/web/components/fleet-resources.tsx",
+    "apps/web/components/needs-attention.tsx",
+    "apps/web/components/ride-conversation.tsx",
+    "apps/web/components/transport-form.tsx",
+    "apps/web/lib/booking/booking.ts",
+    "apps/web/lib/dispatch/data.ts",
+    "apps/web/lib/dispatch/dispatch.ts",
+    "apps/web/lib/operations/capabilities.ts",
+    "apps/web/lib/supabase/recovery.test.ts",
+    "apps/web/lib/supabase/recovery.ts",
+    "apps/web/next-env.d.ts",
+    "docs/DEMO_SCENARIOS.md",
+    "docs/FINAL_COMPLETION_REPORT.md",
+    "docs/MOBILE_SIMULATOR_GUIDE.md",
+    "docs/SOLO_DEVELOPER_RUNBOOK.md",
+    "docs/rc1/AUDIT.md",
+    "docs/rc1/DEPLOYMENT.md",
+    "docs/rc1/OWNER_ACTIONS.md",
+    "docs/rc1/PILOT_GATES.md",
+    "docs/rc1/PILOT_RUNBOOK.md",
+    "docs/rc1/PLAN.md",
+    "docs/rc1/QA.md",
+    "docs/rc1/RELEASE_REPORT.md",
+    "docs/rc1/STATUS.json",
+    "docs/schema-requests/PRODUCT_CONTRACTS.md",
+    "package.json",
+    "packages/core/src/core.test.ts",
+    "packages/core/src/index.ts",
+    "packages/core/src/providers.ts",
+    "packages/core/src/schedule.test.ts",
+    "packages/core/src/schedule.ts",
+    "packages/mobile/scripts/check-preview.cjs",
+    "packages/mobile/scripts/check-preview.test.cjs",
+    "packages/mobile/src/account.tsx",
+    "packages/mobile/src/auth.tsx",
+    "packages/mobile/src/chat.tsx",
+    "packages/mobile/src/errors.ts",
+    "packages/mobile/src/index.ts",
+    "packages/mobile/src/operation.ts",
+    "packages/mobile/src/public-url.cjs",
+    "packages/mobile/src/public-url.d.cts",
+    "packages/mobile/src/resource.ts",
+    "packages/types/src/index.ts",
+    "scripts/backend.mjs",
+    "scripts/check-environment.mjs",
+    "scripts/demo-env.mjs",
+    "scripts/lib/backend-status.mjs",
+    "scripts/lib/backend-status.test.mjs",
+    "scripts/lib/local-fixture-credentials.mjs",
+    "scripts/lib/local-fixture-credentials.test.mjs",
+    "scripts/lib/release-environment.mjs",
+    "scripts/lib/release-environment.test.mjs",
+    "scripts/scan-built-output.mjs",
+    "scripts/test-http.mjs",
+    "scripts/verify-rc1.mjs",
+    "supabase/migrations/0009_rc1_release_contract.sql",
+    "supabase/seed.sql",
+    "supabase/tests/concurrency.py",
+    "supabase/tests/rc1_test.sql",
+    "supabase/tests/run-local.sh",
+    "supabase/tests/security_test.sql",
+    "supabase/tests/upgrade-drain.sql",
+    "supabase/tests/upgrade-fixture.sql",
+    "supabase/tests/upgrade_test.sql"
+  ],
+  "migrations": [
+    {
+      "path": "supabase/migrations/0009_rc1_release_contract.sql",
+      "sha256": "5efb3543cb5c09f63475834c8fec8b2c0b271bae3eba1138fedecbc5f042b4e0",
+      "applied_to": [
+        "disposable Docker hatidone_test",
+        "disposable Docker hatidone_upgrade"
+      ],
+      "hosted_application": "NOT RUN",
+      "existing_local_application": "NOT RUN",
+      "clean": "PASS",
+      "upgrade_0008": "PASS",
+      "active_ride_preflight": "PASS",
+      "constraints": "Must safely drain active rides on old release; historical duplicate0004 mapping requires owner-reviewed target-specific reconciliation"
+    }
+  ],
+  "checks": [
+    {
+      "command": "PATH='/Users/mardi/.npm/_npx/387698761821791d/node_modules/node/bin:'\"$PATH\" npm run verify:code",
+      "status": "PASS",
+      "exit_code": 0,
+      "runtime": "Node24.20.0",
+      "log": "/tmp/hatidone-rc1-verify-code.log",
+      "scope": "integrated ride slice before final browser recovery and seed/CLI hardening deltas",
+      "includes": {
+        "environment_tests": 5,
+        "mobile_preview_tests": 6,
+        "web_unit_tests": 43,
+        "core_unit_tests": 14,
+        "typecheck": "PASS",
+        "lint": "PASS",
+        "web_build": "PASS",
+        "client_scan_files": 23,
+        "expo_passenger": "PASS",
+        "expo_driver": "PASS",
+        "each_database_rc1_assertions": 58,
+        "each_database_security_assertions": 74,
+        "each_database_concurrency_cases": 6
+      }
+    },
+    {
+      "command": "Built Next HTTP smoke on separate port3109",
+      "status": "PASS",
+      "observations": [
+        "GET /api/health 200 liveness only no-store",
+        "GET /api/readiness 401 unauthenticated"
+      ],
+      "cleanup": "test process stopped"
+    },
+    {
+      "command": "npm run check:env:release",
+      "status": "BLOCKED",
+      "exit_code": 1,
+      "reason": "Existing local development endpoints/missing explicit release selection; correctly rejected and preserved"
+    },
+    {
+      "command": "node --test packages/mobile/scripts/check-preview.test.cjs",
+      "status": "PASS",
+      "tests": 8,
+      "scope": "final mobile recovery/preview URL guard delta"
+    },
+    {
+      "command": "Both mobile typechecks and lint after recovery-link delta",
+      "status": "PASS",
+      "scope": "mobile engineer evidence"
+    },
+    {
+      "command": "Final browser/mobile recovery delta checks on Node24.20.0",
+      "status": "PASS",
+      "recovery_tests": 18,
+      "web_total_tests": 61,
+      "mobile_url_tests": 8,
+      "anonymous_http_checks": 3,
+      "web_typecheck": "PASS",
+      "web_lint": "PASS",
+      "web_build": "PASS (33 pages)",
+      "client_output_scan": "PASS (23 files)",
+      "mobile_typechecks": "PASS",
+      "mobile_lint": "PASS",
+      "evidence": "docs/rc1/QA.md final auth delta"
+    },
+    {
+      "command": "Native Android/iOS compilation",
+      "status": "BLOCKED",
+      "execution": "NOT RUN",
+      "reason": "No full Xcode/simctl, Java17, API36/Build Tools36, authorized release signing"
+    },
+    {
+      "command": "Deployed Passenger/Driver/Admin same-booking UI journey",
+      "status": "BLOCKED",
+      "execution": "NOT RUN",
+      "reason": "No authorized deployed RC1 backend and installed preview apps"
+    },
+    {
+      "command": "Installed no-Metro/laptop, restart/offline/account switch, physical-device GPS",
+      "status": "BLOCKED",
+      "execution": "NOT RUN"
+    },
+    {
+      "command": "Email confirmation/recovery delivery and redirect allowlists",
+      "status": "BLOCKED",
+      "execution": "NOT RUN"
+    },
+    {
+      "command": "Backup restoration rehearsal",
+      "status": "BLOCKED",
+      "execution": "NOT RUN"
+    },
+    {
+      "command": "Post-seed npm run test:db and private legacy-credential rejection assertion",
+      "status": "PASS",
+      "exit_code": 0,
+      "log": "/tmp/hatidone-rc1-seed-verification.log",
+      "each_database_rc1_assertions": 58,
+      "each_database_security_assertions": 74,
+      "each_database_concurrency_cases": 6,
+      "extra_credential_check": "All10fictional accounts, including admin, reject prior shared fixture password in both disposable databases; candidate never logged"
+    },
+    {
+      "command": "npm run test:release-safety",
+      "status": "PASS",
+      "tests": 11,
+      "runtime": "Node24.20.0",
+      "includes": {
+        "environment": 5,
+        "individual_fixture_credentials": 3,
+        "safe_status_output": 3
+      },
+      "independently_verified": true
+    },
+    {
+      "command": "node --check scripts/backend.mjs; node --check scripts/test-http.mjs; git diff --check; private artifact ignore checks",
+      "status": "PASS",
+      "execution_scope": "source checks only; no existing backend command or account password changes"
+    },
+    {
+      "command": "Generated fixture-settings SQL roundtrip in disposable PostgreSQL",
+      "status": "PASS",
+      "observations": [
+        "Special-character values preserved",
+        "Zero credential output",
+        "No accounts created",
+        "Disposable container removed"
+      ]
+    }
+  ],
+  "native_artifacts": [],
+  "development_outputs": [
+    {
+      "path": "/tmp/hatidone-rc1-passenger-android",
+      "app": "Passenger",
+      "version": "0.1.0",
+      "platform": "Android Hermes JavaScript export",
+      "backend_environment": "development/local",
+      "source": "base commit + prefinal RC1 dirty working tree",
+      "bundle_bytes": 3246017,
+      "modules": 1060,
+      "privileged_pattern_matches": 0,
+      "local_endpoint_matches": 3,
+      "installable": false,
+      "distributable": false
+    },
+    {
+      "path": "/tmp/hatidone-rc1-driver-android",
+      "app": "Driver",
+      "version": "1.0.0",
+      "platform": "Android Hermes JavaScript export",
+      "backend_environment": "development/local",
+      "source": "base commit + prefinal RC1 dirty working tree",
+      "bundle_bytes": 3285259,
+      "modules": 1070,
+      "privileged_pattern_matches": 0,
+      "local_endpoint_matches": 4,
+      "installable": false,
+      "distributable": false
+    }
+  ],
+  "verified_hosted_urls": [],
+  "known_p0_defects_in_tested_slice": [],
+  "p1_release_blockers": [
+    "Authorized staging project/HTTPS environment and migration-history mapping",
+    "Signed/installable apps and deployed no-Metro three-client test",
+    "Runtime device/offline/account-switch and email-delivery evidence",
+    "Approved retention and actual deletion processor; support/contact staffing",
+    "Backup/restore and operational incident handling evidence",
+    "Transport authority/geography/insurance/fare policy and distribution approvals"
+  ],
+  "limited_behaviors": [
+    "Manual scheduling/reconfirmation/reminders; no deployed scheduler or tested push",
+    "Operator-reviewed route duration with unknown map validation; no exact ETA",
+    "Cash full-report reconciliation/dispute only; partial adjustments need approved procedure",
+    "Optional real organization booking and unversioned legacy backup activation disabled",
+    "Foreground driver location only; no terminated-app tracking claim",
+    "Deletion review requests recorded; no automated record destruction",
+    "Native JavaScript exports predate final small source edits; not release artifacts",
+    "Legacy local backend left untouched; new individual demo credentials take effect only on owner-opted disposable reset/start of a fresh backend"
+  ],
+  "evidence_documents": [
+    "docs/rc1/AUDIT.md",
+    "docs/rc1/PLAN.md",
+    "docs/rc1/QA.md",
+    "docs/rc1/RELEASE_REPORT.md",
+    "docs/rc1/DEPLOYMENT.md",
+    "docs/rc1/OWNER_ACTIONS.md",
+    "docs/rc1/PILOT_RUNBOOK.md",
+    "docs/rc1/PILOT_GATES.md",
+    "docs/MOBILE_SIMULATOR_GUIDE.md"
+  ],
+  "final_effective_test_counts": {
+    "web": 61,
+    "core": 14,
+    "environment_safety": 5,
+    "mobile_preview_recovery_guards": 8,
+    "each_clean_and_upgrade_database_sql": 132,
+    "each_clean_and_upgrade_database_concurrency": 6,
+    "anonymous_core_http": 2,
+    "anonymous_recovery_http": 3,
+    "individual_fixture_credentials": 3,
+    "safe_status_output": 3
+  },
+  "qa_requested_source_fixes_remaining": []
+}

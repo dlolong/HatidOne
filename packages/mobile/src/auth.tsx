@@ -1,21 +1,25 @@
 import "react-native-url-polyfill/auto";
+import { signupOutcome } from "@hatidone/core";
 import {
   createClient,
   type Session,
   type SupabaseClient,
 } from "@supabase/supabase-js";
 import * as SecureStore from "expo-secure-store";
-import { AppState, Platform } from "react-native";
+import { AppState, Platform, View, Text, Linking } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import {
   createContext,
   useContext,
   useEffect,
   useMemo,
   useState,
+  useRef,
   type ReactNode,
 } from "react";
 import { Button, Card, Field, Heading, Muted, Notice, Screen } from "./ui";
 import { userError } from "./errors";
+import { passwordRecoveryUrl } from "./public-url.cjs";
 
 export interface Profile {
   id: string;
@@ -69,25 +73,22 @@ export function AuthProvider({
   children,
   supabaseUrl,
   supabaseAnonKey,
+  environment,
 }: {
   children: ReactNode;
   supabaseUrl?: string;
   supabaseAnonKey?: string;
+  environment?: string;
 }) {
-  const client = useMemo(
-    () =>
-      supabaseUrl && supabaseAnonKey
-        ? createClient(supabaseUrl, supabaseAnonKey, {
-            auth: {
-              storage,
-              autoRefreshToken: true,
-              persistSession: true,
-              detectSessionInUrl: false,
-            },
-          })
-        : null,
-    [supabaseUrl, supabaseAnonKey],
-  );
+  const client = useMemo(() => {
+    if (!supabaseUrl || !supabaseAnonKey) return null;
+    try {
+      return createClient(supabaseUrl, supabaseAnonKey, {
+        auth: { storage, autoRefreshToken: true, persistSession: true, detectSessionInUrl: false },
+      });
+    } catch { return null; }
+  }, [supabaseUrl, supabaseAnonKey]);
+  const activeUser = useRef<string | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -108,6 +109,7 @@ export function AuthProvider({
       setError(userError(result.error));
       return;
     }
+    if (activeUser.current !== session.user.id) return;
     setProfile(result.data);
     setError(null);
   }
@@ -121,6 +123,7 @@ export function AuthProvider({
       .getSession()
       .then(({ data, error: authError }) => {
         if (live) {
+          activeUser.current = data.session?.user.id ?? null;
           setSession(data.session);
           setError(authError ? userError(authError) : null);
           setLoading(false);
@@ -135,11 +138,28 @@ export function AuthProvider({
         }
       });
     const { data } = client.auth.onAuthStateChange((_event, next) => {
+      activeUser.current = next?.user.id ?? null;
+      setProfile((current) => current?.id === next?.user.id ? current : null);
       setSession(next);
       setLoading(false);
     });
+    const verifySession = async () => {
+      const { data: current } = await client.auth.getSession();
+      if (!current.session) return;
+      const result = await client.auth.getUser();
+      // Network outages are not revocations. Only an authoritative auth rejection clears storage.
+      if (result.error && result.error.status && [400, 401, 403].includes(result.error.status)) {
+        const latest = await client.auth.getSession();
+        if (live && latest.data.session?.access_token === current.session.access_token) await client.auth.signOut({ scope: "local" });
+      }
+    };
+    if (AppState.currentState === "active") client.auth.startAutoRefresh();
+    void verifySession().catch(() => undefined);
     const subscription = AppState.addEventListener("change", (state) => {
-      if (state === "active") client.auth.startAutoRefresh();
+      if (state === "active") {
+        client.auth.startAutoRefresh();
+        void verifySession().catch(() => undefined);
+      }
       else client.auth.stopAutoRefresh();
     });
     return () => {
@@ -176,7 +196,7 @@ export function AuthProvider({
       value={{
         client,
         session,
-        profile,
+        profile: profile?.id === session?.user.id ? profile : null,
         loading,
         configured: !!client,
         error,
@@ -205,19 +225,27 @@ export function AuthProvider({
             },
           });
           if (result.error) throw new Error(userError(result.error));
-          return result.data.session
-            ? "Account created."
-            : "Check your email to confirm your account, then sign in.";
+          const outcome = signupOutcome(result);
+          if (outcome === "failed") throw new Error("Signup could not be completed. Retry, or sign in with your existing account.");
+          // The SDK's existing auth event/storage mechanism handles sessions.
+          return outcome === "authenticated"
+            ? "Signed in."
+            : "If confirmation is needed and delivery is available, check your email, then sign in. Already registered? Sign in or reset your password.";
         },
         signOut: async () => {
           if (!client) return;
-          const result = await client.auth.signOut();
+          const result = await client.auth.signOut({ scope: "local" });
           if (result.error) throw new Error(userError(result.error));
+          activeUser.current = null;
+          setSession(null);
           setProfile(null);
         },
       }}
     >
-      {children}
+      <View style={{ flex: 1 }}>
+        {environment && environment !== "production" && <SafeAreaView edges={["top"]} style={{ backgroundColor: "#111111" }}><Text style={{ backgroundColor: "#111111", color: "#FFFFFF", textAlign: "center", paddingTop: 8, paddingBottom: 8 }}>{environment === "staging" ? "Invited staging software test" : `${environment.toUpperCase()} · Fictional testing only`}</Text></SafeAreaView>}
+        {children}
+      </View>
     </AuthContext.Provider>
   );
 }
@@ -230,12 +258,17 @@ export function AuthScreen({
   title,
   subtitle,
   allowSignUp = true,
+  webUrl,
+  environment,
 }: {
   title: string;
   subtitle?: string;
   allowSignUp?: boolean;
+  webUrl?: string;
+  environment?: string;
 }) {
   const auth = useAuth();
+  const recoveryUrl = passwordRecoveryUrl(webUrl, environment);
   const [signup, setSignup] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -320,6 +353,13 @@ export function AuthScreen({
           }
           onPress={() => void submit()}
         />
+        {!signup && (recoveryUrl ? <>
+          <Button label="Forgot password" variant="secondary" disabled={busy} onPress={() => {
+            setError("");
+            void Linking.openURL(recoveryUrl).catch(() => setError("We couldn’t open password recovery. Try again or open your HatidOne web account in your browser."));
+          }} />
+          <Muted>Password recovery opens in your browser. Complete the web instructions, then return here to sign in. Email delivery has not been verified.</Muted>
+        </> : <Muted>Password recovery is unavailable in this build. Contact the person who invited you for account assistance.</Muted>)}
         {allowSignUp && (
           <Button
             label={signup ? "I already have an account" : "Create an account"}

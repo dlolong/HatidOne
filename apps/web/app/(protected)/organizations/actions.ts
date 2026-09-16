@@ -1,4 +1,5 @@
 'use server';
+import { isIsolatedDemoEnvironment } from '@/lib/operations/capabilities';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { requireProfile } from '@/lib/auth/session';
@@ -30,6 +31,7 @@ export async function saveLocation(form: FormData) {
   return execute(form, 'save_organization_location', { organization_id: field(form, 'organization_id'), label: field(form, 'label'), address: field(form, 'address'), latitude: optionalNumber(form, 'latitude'), longitude: optionalNumber(form, 'longitude') }, 'Location saved.');
 }
 export async function createTransport(form: FormData) {
+  if (!isIsolatedDemoEnvironment()) redirect(`${path(form)}?error=Business%20requests%20are%20unavailable%20in%20this%20pilot.`);
   const scheduled = field(form, 'scheduled_at');
   return execute(form, 'create_transport_request', {
     organization_id: field(form, 'organization_id'), client_request_id: field(form, 'client_request_id'),
@@ -45,8 +47,8 @@ export async function createTransport(form: FormData) {
 
 export async function dispatchFleetRide(form: FormData) {
   await requireProfile(); const client=await createClient();
-  const {error}=await client.rpc('manual_assign_ride',{p_ride_request_id:field(form,'ride_id'),p_driver_id:field(form,'driver_id'),p_vehicle_id:field(form,'vehicle_id'),p_radius_meters:100000});
-  const target=path(form);revalidatePath(target);redirect(`${target}?${error?'error=Driver%20is%20not%20eligible%20for%20this%20ride.':'message=Driver%20assigned.'}`);
+  const {error}=await client.rpc('rc1_manual_assign_ride',{p_ride_request_id:field(form,'ride_id'),p_driver_id:field(form,'driver_id'),p_vehicle_id:field(form,'vehicle_id'),p_expected_version:Number(field(form,'quote_version')),p_reason:field(form,'reason')});
+  const target=path(form);revalidatePath(target);redirect(`${target}?${error?'error=Driver%20is%20not%20eligible%20for%20this%20ride.':'message=Driver%20assigned.%20Awaiting%20reconfirmation.'}`);
 }
 export async function linkFleetVehicle(form: FormData) {
   const profile=await requireProfile();if(profile.role!=='admin')redirect(`${path(form)}?error=Administrator%20review%20is%20required.`);

@@ -1,0 +1,32 @@
+name: RC1 repository verification
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: rc1-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  repository:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      HATIDONE_ENVIRONMENT: test
+      EXPO_PUBLIC_APP_ENVIRONMENT: test
+      HATIDONE_DEMO_MODE: 'false'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm run verify:code
+      - name: Release gates require external evidence
+        if: always()
+        run: |
+          echo 'BLOCKED: deployed authenticated journey, signed artifacts and installed no-Metro/device verification are not performed by repository CI.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'This workflow has no deployment credentials and does not deploy or authorize a pilot.' >> "$GITHUB_STEP_SUMMARY"

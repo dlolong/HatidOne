@@ -18,6 +18,7 @@ export function matchingJob(ride: Ride): MatchingJob | null {
     ride.dropoff_longitude,
   ];
   if (
+    ride.pickup_latitude === null || ride.pickup_longitude === null || ride.dropoff_latitude === null || ride.dropoff_longitude === null ||
     !values.every(
       (value) => typeof value === "number" && Number.isFinite(value),
     )

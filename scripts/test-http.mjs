@@ -1,12 +1,16 @@
 import { readFileSync } from 'node:fs';
 import { randomUUID } from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
+import { validateFixturePasswords } from './lib/local-fixture-credentials.mjs';
 const env=Object.fromEntries(readFileSync(new URL('../apps/web/.env.local',import.meta.url),'utf8').split('\n').filter(line=>line.includes('=')).map(line=>{const i=line.indexOf('=');return [line.slice(0,i),line.slice(i+1)];}));
 const url=env.NEXT_PUBLIC_SUPABASE_URL;
 if(url!=='http://127.0.0.1:55321' && url!=='http://localhost:55321')throw new Error('HTTP smoke writes ONLY to the isolated local demo backend.');
+let passwords;
+try { passwords=validateFixturePasswords(JSON.parse(readFileSync(new URL('../.local-backend/test-accounts.json',import.meta.url),'utf8'))); }
+catch { throw new Error('BLOCKED: valid individual local fixture credentials are required in the ignored .local-backend/test-accounts.json. No shared-password fallback is allowed. Existing backend accounts are unchanged until an owner-confirmed disposable reset.'); }
 let assertions=0;
 function check(condition,label){if(!condition)throw new Error(`FAIL: ${label}`);assertions++;console.log(`PASS: ${label}`);}
-async function session(name){const client=createClient(url,env.NEXT_PUBLIC_SUPABASE_ANON_KEY,{auth:{persistSession:false,autoRefreshToken:false}});const {error}=await client.auth.signInWithPassword({email:`${name}@hatidone.test`,password:'DEMO-ONLY-HatidOne!42'});check(!error,`local Auth login ${name}${error?`: ${error.message}`:''}`);return client;}
+async function session(name){const client=createClient(url,env.NEXT_PUBLIC_SUPABASE_ANON_KEY,{auth:{persistSession:false,autoRefreshToken:false}});const {error}=await client.auth.signInWithPassword({email:`${name}@hatidone.test`,password:passwords[`${name}@hatidone.test`]});check(!error,`local Auth login ${name}`);return client;}
 async function rpc(client,name,args){const {data,error}=await client.rpc(name,args);if(error)throw new Error(`${name}: ${error.message}`);return data;}
 const [passenger,driver,admin,outsider,partner,corporate,fleet]=await Promise.all(['passenger','driver','admin','outsider','partner','corporate','fleet'].map(session));
 const payload={client_request_id:randomUUID(),pickup_address:'HTTP demo Manila pickup',pickup_lat:14.55,pickup_lng:121.05,dropoff_address:'HTTP demo Makati dropoff',dropoff_lat:14.56,dropoff_lng:121.06,vehicle_type:'sedan',service_type:'local',passenger_count:2,route_preference:'avoid_tolls',estimated_fare:1,driver_earnings:999999};
@@ -36,4 +40,4 @@ const referrals=await rpc(partner,'get_partner_referrals',{p_organization_id:'50
 const orgs=await corporate.from('organizations').select('id');check(!orgs.error&&orgs.data.length===1,'HTTP corporate isolation');
 const sub=await rpc(admin,'admin_manage_subscription',{p_payload:{organization_id:'50000000-0000-4000-8000-000000000002',plan_id:'partner_business',status:'active',expires_at:new Date(Date.now()+40*86400000).toISOString(),billing_status:'waived'}});check(typeof sub==='string','HTTP manual subscription activation');
 const eventId=randomUUID();const payment=await rpc(admin,'record_mock_payment_event',{p_ride_request_id:referred,p_event_id:eventId,p_status:'paid'});check(payment===await rpc(admin,'record_mock_payment_event',{p_ride_request_id:referred,p_event_id:eventId,p_status:'paid'}),'HTTP DEMO PAYMENT replay');
-console.log(`HTTP smoke completed: ${assertions} checks passed. Demo records retained; npm run demo:reset restores fixtures.`);
+console.log(`HTTP smoke completed: ${assertions} checks passed. Demo records retained; npm run demo:reset -- --confirm-local-reset recreates disposable fixtures and rotates individual credentials.`);

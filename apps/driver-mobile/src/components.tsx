@@ -6,9 +6,11 @@ import { peso, schedule, label, driverError, statusTone } from "./format";
 import type { Ride } from "./data";
 
 export function Feedback() {
-  const { error, actionError, feedback, locationError, loading, data, reload } = useDriver();
+  const { error, actionError, feedback, locationError, locationUpdatedAt, stale, loading, data, reload } = useDriver();
   return <>
     {loading && !data && <LoadingSkeleton lines={3} />}
+    {stale && <Notice>Updates unavailable. Details may be stale; refresh before acting.</Notice>}
+    {locationUpdatedAt && <Muted>GPS fix: {schedule(new Date(locationUpdatedAt).toISOString())}. {Date.now() - locationUpdatedAt > 60000 ? "Location is stale." : "Foreground only."}</Muted>}
     {error && <><Notice tone="error">{driverError(error)}</Notice><Button label="Try again" variant="secondary" onPress={() => void reload()} /></>}
     {actionError && <Notice tone="error">{driverError(actionError)}</Notice>}
     {feedback && <Notice tone="success">{feedback}</Notice>}
@@ -27,7 +29,7 @@ export function RideCard({ ride, children, badge, compact = false }: { ride: Rid
     <Muted>{schedule(ride.scheduled_at)}</Muted>
     <RideRoute ride={ride} />
     <Muted>{label(ride.vehicle_type)} · {ride.passenger_count} passenger{ride.passenger_count === 1 ? "" : "s"} · {label(ride.service_type)}</Muted>
-    {!compact && <Muted>{ride.estimated_distance_meters === null ? "Distance pending" : `Approx. ${(ride.estimated_distance_meters / 1000).toFixed(1)} km`}{ride.estimated_duration_seconds === null ? " · Duration pending" : ` · ${Math.ceil(ride.estimated_duration_seconds / 60)} min`}</Muted>}
+    {!compact && <Muted>{ride.estimated_distance_meters === null ? "Distance pending" : `Approx. ${(ride.estimated_distance_meters / 1000).toFixed(1)} km`}{ride.estimated_duration_seconds === null ? " · Duration pending" : ` · ${Math.ceil(ride.estimated_duration_seconds / 60)} min ${ride.route_source === "operator_review" ? "scheduling allowance; not an ETA" : "estimate"}`}</Muted>}
     <View style={styles.earnings}><Muted>Estimated earnings</Muted><Text style={styles.total}>{peso(ride.driver_earnings)}</Text></View>
     {!compact && <>
       <View style={styles.breakdown}><MoneyLine label="Ride fare" value={ride.gross_fare ?? ride.estimated_fare} /><MoneyLine label="HatidOne commission" value={ride.platform_commission} /><MoneyLine label="Estimated toll" value={ride.estimated_toll_amount} /></View>

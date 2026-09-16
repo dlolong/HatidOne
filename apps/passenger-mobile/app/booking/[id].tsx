@@ -26,6 +26,7 @@ import { bookingTone, RouteSummary } from "../../src/components";
 import { getBooking, statusLabel, terminalStatuses } from "../../src/data";
 interface Driver {
   driver_id: string;
+  confirmed_at: string | null;
   name: string;
   verification_status: string;
   rating: number;
@@ -58,7 +59,7 @@ export default function BookingDetail() {
   const resource = useResource(async () => {
     const booking = await getBooking(client, id);
     if (!client) throw new Error("Sign in first.");
-    const [driver, events, reads, messages] = await Promise.all([
+    const [driver, events, reads, messages, quotes, collections] = await Promise.all([
       client.rpc("get_assigned_driver", { p_ride_request_id: id }),
       client
         .from("ride_request_events")
@@ -77,7 +78,11 @@ export default function BookingDetail() {
         .eq("ride_request_id", id)
         .order("created_at", { ascending: false })
         .limit(100),
+      client.from("ride_quotes").select("version,amount,currency,breakdown,reason,created_at").eq("ride_request_id", id).eq("version", booking.quote_version).maybeSingle(),
+      client.from("cash_collection_events").select("id,kind,amount,currency,note,created_at").eq("ride_request_id", id).order("created_at"),
     ]);
+    if (quotes.error) throw new Error(quotes.error.message);
+    if (collections.error) throw new Error(collections.error.message);
     if (events.error) throw new Error(events.error.message);
     if (driver.error) throw new Error(driver.error.message);
     if (reads.error) throw new Error(reads.error.message);
@@ -100,6 +105,8 @@ export default function BookingDetail() {
     }
     return {
       booking,
+      quote: quotes.data,
+      collections: collections.data ?? [],
       driver: driver.data as Driver | null,
       events: events.data as RideEvent[],
       unread,
@@ -131,13 +138,21 @@ export default function BookingDetail() {
         },
         () => void reload(),
       )
-      .subscribe();
-    const timer = setInterval(() => void reload(), 15000);
+      .subscribe((status) => { if (status === "SUBSCRIBED") void reload(); });
     return () => {
-      clearInterval(timer);
       void client.removeChannel(channel);
     };
   }, [client, id, reload]);
+  async function acceptQuote() {
+    if (!client || !resource.data || busy) return;
+    setBusy(true); setError("");
+    try {
+      const result = await client.rpc("accept_ride_quote", { p_ride_request_id: id, p_version: resource.data.booking.quote_version });
+      if (result.error) throw result.error;
+      setSuccess("Quote accepted. Driver assignment and reconfirmation are still required.");
+    } catch { setError("Quote acceptance could not be confirmed. Refresh to see whether it was accepted before trying again."); }
+    finally { await reload(); setBusy(false); }
+  }
   async function cancel() {
     if (!client) return;
     setBusy(true);
@@ -236,6 +251,17 @@ export default function BookingDetail() {
       {success && <Notice tone="success">{success}</Notice>}
       {data && (
         <>
+          {resource.stale && <Notice>Updates unavailable. Showing saved details; refresh before taking an action.</Notice>}
+          <Card>
+            <Heading size="section">{data.booking.quote_status === "accepted" ? "Agreed fare" : data.booking.quote_status === "offered" ? "Review your quote" : "Fare awaiting operator review"}</Heading>
+            {data.quote ? <>
+              <Text>{money(Number(data.quote.amount))} {data.quote.currency} · Version {data.quote.version}</Text>
+              <Muted>{data.quote.reason}</Muted>
+              {Object.entries(data.quote.breakdown as Record<string, unknown>).map(([key, value]) => <Text key={key}>{key.replaceAll("_", " ")}: {typeof value === "object" ? JSON.stringify(value) : String(value)}</Text>)}
+              {data.booking.quote_status === "offered" && <Button label="Accept this quote" loading={busy} disabled={resource.stale || terminalStatuses.has(data.booking.status)} onPress={() => void acceptQuote()} />}
+            </> : <Muted>Operations must validate the route and supply a quote. No fare or precise arrival time is confirmed.</Muted>}
+            <Muted>Quote acceptance, driver confirmation and cash collection are separate steps.</Muted>
+          </Card>
           <StatusPill
             label={statusLabel(data.booking.status)}
             tone={bookingTone(data.booking.status)}
@@ -258,7 +284,7 @@ export default function BookingDetail() {
                   </Text>
                 </View>
                 <View style={{ flex: 1, gap: 3 }}>
-                  <Muted>Your driver</Muted>
+                  <Muted>{data.driver.confirmed_at ? "Driver reconfirmed pickup" : "Assigned · awaiting driver reconfirmation"}</Muted>
                   <Heading size="section">{data.driver.name}</Heading>
                 </View>
               </View>
@@ -315,8 +341,7 @@ export default function BookingDetail() {
           ) : (
             !terminalStatuses.has(data.booking.status) && (
               <Notice>
-                We’re finding a driver. We’ll show their details here once your
-                ride is assigned.
+                Operations will arrange a driver after your quote is accepted. Refresh here for assignment and reconfirmation updates.
               </Notice>
             )
           )}
@@ -417,21 +442,19 @@ export default function BookingDetail() {
                     ? "Unknown; confirm with driver"
                     : money(data.booking.estimated_toll_amount)}
                 </Text>
-                <Muted>
-                  Local route estimate ·{" "}
-                  {(data.booking.estimated_distance_meters / 1000).toFixed(1)}{" "}
-                  km · {Math.ceil(data.booking.estimated_duration_seconds / 60)}{" "}
-                  min. Road distance and traffic may differ.
-                </Muted>
-                <Muted>
-                  Cash payment · No payment is collected in this app.
-                </Muted>
+                <Muted>Route reviewed manually. Map validation and live traffic ETA are unavailable.</Muted>
+                <Muted>Cash collection is recorded separately; completing a trip does not mark it paid.</Muted>
                 {data.booking.passenger_notes && (
                   <Text>{data.booking.passenger_notes}</Text>
                 )}
               </Card>
             </>
           )}
+          {data.booking.status === "trip_completed" && <Card>
+            <Heading size="section">Cash collection history</Heading>
+            {!data.collections.length && <Muted>No cash collection recorded. Trip completion does not mean payment was received.</Muted>}
+            {data.collections.map(event => <Muted key={event.id}>{event.kind === "reported" ? "Driver reported cash · awaiting reconciliation" : event.kind === "reconciled" ? "Operations reconciled cash" : "Cash disputed"}: {money(Number(event.amount))} {event.currency} · {dateTime(event.created_at)}</Muted>)}
+          </Card>}
           <Button
             label="Share trip summary"
             variant="secondary"
